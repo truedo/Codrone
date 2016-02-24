@@ -2,7 +2,7 @@
   SmartDroneControl.h - SmartDroneControl library
   Copyright (C) 2014 RoboLink.  All rights reserved.
   LastUpdate : 2015-08-07
-*/
+*/ 
 
 #ifndef CoDrone_h
 #define CoDrone_h
