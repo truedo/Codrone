@@ -60,8 +60,8 @@ boolean CoDroneClass::CRC16_Check(unsigned char data[], int len, unsigned char c
   boolean crcCheck = false;
   unsigned short receiveCRC = ((crc[0] << 8) | (crc[1]  & 0xff));
   unsigned short  makeCRC = CRC16_Make(data, len + 2);
-  if (receiveCRC == makeCRC )	   crcCheck = true;
-  else				crcCheck = false;
+  if (receiveCRC == makeCRC )	   	  	crcCheck = true;
+  else					  										crcCheck = false;
   return crcCheck;
 }
 
@@ -69,43 +69,43 @@ boolean CoDroneClass::CRC16_Check(unsigned char data[], int len, unsigned char c
 
 void CoDroneClass::begin(void)
 {
-	StartLED();
 	
-	SendInterval = 100; //millis seconds		
-		
+	SendInterval = 100; //millis seconds				
 	analogOffset = 10; // analog sensor offset
+		 
+		StartLED();
 		
-	if (EEPROM.read(eep_AddressCheck) == 1)
-  {  	
-  	for (int i = 0; i <= 5; i++)
-		{
-			devAddressConnected[i] = EEPROM.read(eep_AddressFirst+i);
-		}		
-	}
-
-	pinMode(8, INPUT_PULLUP);
-	pinMode(9, INPUT_PULLUP);
-	pinMode(10, INPUT_PULLUP);
-	
-	pinMode(11, INPUT);
-	pinMode(12, OUTPUT);
-	pinMode(13, OUTPUT);
-	pinMode(14, INPUT);
-	pinMode(15, INPUT);
-	pinMode(16, OUTPUT);
-	pinMode(17, OUTPUT);
-	pinMode(18, INPUT);
+		if (EEPROM.read(eep_AddressCheck) == 1)
+		{  	
+			for (int i = 0; i <= 5; i++)
+			{
+				devAddressConnected[i] = EEPROM.read(eep_AddressFirst+i);
+			}		
+		}
 		
-	digitalWrite(11, LOW);
-	digitalWrite(12, LOW);
-  digitalWrite(13, LOW);
-  digitalWrite(14, LOW);
-  digitalWrite(15, LOW);
-  digitalWrite(16, LOW);
-  digitalWrite(17, LOW);
-  digitalWrite(18, LOW);
-	
+		pinMode(8, INPUT_PULLUP);
+		pinMode(9, INPUT_PULLUP);
+		pinMode(10, INPUT_PULLUP);
+		
+		pinMode(11, INPUT);
+		pinMode(12, OUTPUT);
+		pinMode(13, OUTPUT);
+		pinMode(14, INPUT);
+		pinMode(15, INPUT);
+		pinMode(16, OUTPUT);
+		pinMode(17, OUTPUT);
+		pinMode(18, INPUT);
+		
+		digitalWrite(11, LOW);
+		digitalWrite(12, LOW);
+		digitalWrite(13, LOW);
+		digitalWrite(14, LOW);
+		digitalWrite(15, LOW);
+		digitalWrite(16, LOW);
+		digitalWrite(17, LOW);
+		digitalWrite(18, LOW);
 }
+
 /***************************************************************************/
 //////////////////////Command////////////////////////////////////////////
 /***************************************************************************/
@@ -116,14 +116,14 @@ void CoDroneClass::Send_LinkState()
 {
   Send_Command(cType_Request, 0xc0);
 }
-void CoDroneClass::Send_LinkReset()
+void CoDroneClass::LinkReset()
 {
   Send_Command(cType_SystemReset, 0);
 }
 void CoDroneClass::Send_Discover(byte action)
 {	
-	if(action == 0)	  	Send_Command(cType_DiscoverStop, 0);		//DiscoverStop
-	else if(action == 1)	
+	if(action == DiscoverStop)	  	Send_Command(cType_DiscoverStop, 0);		//DiscoverStop
+	else if(action == DiscoverStart)	
 	{
 		Send_Command(cType_DiscoverStart, 0);  	//DiscoverStart  
 		discoverFlag = 1;
@@ -175,7 +175,7 @@ void CoDroneClass::Send_Trim(byte event)
 {
 	  Send_Command(cType_Trim, event);
 }
-void CoDroneClass::Send_FlightEvent(byte event)
+void CoDroneClass::FlightEvent(byte event)
 {
 	  Send_Command(cType_FlightEvent, event);
 }
@@ -188,7 +188,7 @@ void CoDroneClass::Send_ResetHeading()
 /***************************************************************************/
 ///////////////////////////////////////////////////////////////////////////
 
-void CoDroneClass::Send_Control(int8_t _throttle, int8_t _yaw, int8_t _roll, int8_t _pitch)
+void CoDroneClass::Control()
 {
   byte _packet[10];
   byte _crc[2];
@@ -201,10 +201,10 @@ void CoDroneClass::Send_Control(int8_t _throttle, int8_t _yaw, int8_t _roll, int
   _packet[1] = _len;
 
   //data
-  _packet[2] = _roll;
-  _packet[3] = _pitch;
-  _packet[4] = _yaw;
-  _packet[5] = _throttle;
+  _packet[2] = roll;
+  _packet[3] = pitch;
+  _packet[4] = yaw;
+  _packet[5] = throttle;
 
   unsigned short crcCal = CRC16_Make(_packet, _len+2);
   _crc[0] = (crcCal >> 8) & 0xff;
@@ -240,7 +240,7 @@ void CoDroneClass::Send_Command(int sendCommand, int sendOption)
 }
 /////////////////////////////////////////////////////
 
-void CoDroneClass::Send_LedColor(byte sendMode, byte sendColor, byte sendInterval)
+void CoDroneClass::LedColor(byte sendMode, byte sendColor, byte sendInterval)
 {	
 
   byte _packet[9];
@@ -267,7 +267,7 @@ void CoDroneClass::Send_LedColor(byte sendMode, byte sendColor, byte sendInterva
 
 
 
-void CoDroneClass::Send_LedColor(byte sendMode, byte r, byte g, byte b, byte sendInterval)
+void CoDroneClass::LedColor(byte sendMode, byte r, byte g, byte b, byte sendInterval)
 {	
   byte _packet[9];
   byte _crc[2];
@@ -293,7 +293,7 @@ void CoDroneClass::Send_LedColor(byte sendMode, byte r, byte g, byte b, byte sen
   Send_Processing(_packet,_len,_crc);     
 }
 
-void CoDroneClass::Send_LedColor(byte sendMode, byte sendColor[], byte sendInterval)
+void CoDroneClass::LedColor(byte sendMode, byte sendColor[], byte sendInterval)
 {	
   byte _packet[9];
   byte _crc[2];
@@ -322,7 +322,7 @@ void CoDroneClass::Send_LedColor(byte sendMode, byte sendColor[], byte sendInter
 
 
 
-void CoDroneClass::Send_LedEvent(byte sendMode, byte sendColor, byte sendInterval, byte sendRepeat)
+void CoDroneClass::LedEvent(byte sendMode, byte sendColor, byte sendInterval, byte sendRepeat)
 {	
   byte _packet[9];
   byte _crc[2];
@@ -349,7 +349,7 @@ void CoDroneClass::Send_LedEvent(byte sendMode, byte sendColor, byte sendInterva
 
 
 
-void CoDroneClass::Send_LedEvent(byte sendMode, byte sendColor[], byte sendInterval, byte sendRepeat)
+void CoDroneClass::LedEvent(byte sendMode, byte sendColor[], byte sendInterval, byte sendRepeat)
 {	
   byte _packet[9];
   byte _crc[2];
@@ -378,7 +378,7 @@ void CoDroneClass::Send_LedEvent(byte sendMode, byte sendColor[], byte sendInter
 }
 
 
-void CoDroneClass::Send_LedEvent(byte sendMode, byte r, byte g, byte b, byte sendInterval, byte sendRepeat)
+void CoDroneClass::LedEvent(byte sendMode, byte r, byte g, byte b, byte sendInterval, byte sendRepeat)
 {	
   byte _packet[9];
   byte _crc[2];
@@ -432,63 +432,164 @@ void CoDroneClass::Send_Ping()
 }
 
 
-
-
 void CoDroneClass::AutoConnect(byte mode)
 {	
-  if (mode == NeardbyDrone)	
+	// Connected check
+	LinkStateCheck();		
+  if (receiveLinkState  == linkMode_Connected)
   {
-  	CoDrone.Send_Discover(START);  	  	
-  	while(!paringState)
-  	{  		
-  		 CoDrone.Receive();  		 
-  		   		 
-  		 if((CoDrone.discoverFlag == 3) && (connectFlag == 0))
-  		 {  		 	
-  		 	delay(100);
-  		 	discoverFlag = 0;
-  		 	Send_ConnectNearbyDrone();  	  		 	
-  		 }  			
-  	}
-  	delay(200);  	 	  	
+    pairing = true;
+    ConnectLED();    
   }
-  
-  else if(mode == ConnectedDrone)   
-  {
-  	CoDrone.Send_Discover(START);  	  	
-  	while(!paringState)
-  	{  		
-  		 CoDrone.Receive();  		 
-  		   		 
-  		 if ((CoDrone.discoverFlag == 3) && (connectFlag == 0))
-  		 {  		 	
-  		 	delay(100);
-  		 	discoverFlag = 0;
-  		 	Send_ConnectConnectedDrone();  	  		 	
-  		 }
-  	}
-  	delay(200);
-  } 
+  // AutoConnect start
+	else     
+	{				
+	  if (mode == NeardbyDrone)	
+	  {
+	  	Send_Discover(DiscoverStart);  
+	  	PreviousMillis = millis();
+
+			DDRC = 0xff;
+			
+	  	while(!pairing)
+	  	{  		
+	  		 Receive();  		 
+	  		   		 
+	  		 if((discoverFlag == 3) && (connectFlag == 0)) //Address find
+	  		 {	  		 	
+	  		 	DDRC = 0b01100110;
+	  		 	PORTC = 0x00;
+	  		 	  		 		  		 	
+	  		 	delay(50);
+	  		 	discoverFlag = 0;
+	  		 	Send_ConnectNearbyDrone();  	  		 				//  Connect Start
+	  		 }
+	  		 
+	  		 else if (discoverFlag == 4)	// Address not find : re-try
+	  		 {
+	  		 	delay(50);
+	  		 	Send_Discover(DiscoverStart);
+	  		 	PreviousMillis = millis();
+	  		 }
+	  		 else
+	  		 {	  	
+		  		if (TimeCheck(400))		//time out & LED
+	    		{
+	      		if (displayLED++ == 4) 
+	      		{
+	      			displayLED = 0;	 
+	      			delay(50);     
+	      			Send_Discover(DiscoverStart);
+	      		}
+	      		PORTC = (0b1<<displayLED) | (0b10000000>>displayLED);	   
+	      		PreviousMillis = millis();   		     
+					}
+	  		}	  		 
+	  	}
+	  	delay(50);  	 	  	
+	  }
+	  
+	  else if(mode == ConnectedDrone)   
+	  {
+	  	Send_Discover(DiscoverStart);  
+	  	PreviousMillis = millis();
+
+			DDRC = 0xff;	  	
+			
+	  	while(!pairing)
+	  	{  		
+	  		 Receive();  		 
+	  		   		 
+	  		 if ((discoverFlag == 3) && (connectFlag == 0))	//Address find
+	  		 {  		 	
+	  		 	DDRC = 0b01100110;
+	  		 	PORTC = 0x00;
+	  		 	  		 		  	
+	  		 	delay(50);
+	  		 	discoverFlag = 0;
+	  		 	Send_ConnectConnectedDrone();  	 	//  Connect Start 		 	
+	  		 }
+	  		 else if (discoverFlag == 4)	// Address not find : re-try
+	  		 {
+	  		 	Send_Discover(DiscoverStart);
+	  		  PreviousMillis = millis();
+	  		 }
+	  		 else
+	  		 {	  	
+		  		if (TimeCheck(400))  //time out & LED
+	    		{
+	      		if (displayLED++ == 4) 
+	      		{
+	      			displayLED = 0;	 
+	      			delay(50);     
+	      			Send_Discover(DiscoverStart);
+	      		}
+	      		PORTC = (0b1<<displayLED) | (0b10000000>>displayLED);	   
+	      		PreviousMillis = millis();   		     
+					}
+	  		}
+	  	}
+	  	delay(50);
+	  } 
+	}
 }
 
 void CoDroneClass::AutoConnect(byte mode, byte address[])
-{	
-  if (mode == AddressInputDrone)	
+{		
+	
+	// Connected check
+	LinkStateCheck();		
+  if (receiveLinkState  == linkMode_Connected)
   {
-  	CoDrone.Send_Discover(START);  	  	
-  	while(!paringState)
-  	{  		
-  		 CoDrone.Receive();  		 
-  		   		 
-  		 if((CoDrone.discoverFlag == 3) && (connectFlag == 0))
-  		 {  		 	
-  		 	delay(100);
-  		 	discoverFlag = 0;
-  		 	Send_ConnectAddressInputDrone(address);  	  		 	
-  		 }  			
-  	}
-  	delay(200);  	
+    pairing = true;
+    ConnectLED();
   }
+    
+  // AutoConnect start
+	else     
+	{		 	
+	  if (mode == AddressInputDrone)		
+	  {
+	  	Send_Discover(DiscoverStart);  
+	  	PreviousMillis = millis();
+	  	
+			DDRC = 0xff;	 	
+
+	  	while(!pairing)
+	  	{  		
+	  		 Receive();  		 
+	  		   		 
+	  		 if((discoverFlag == 3) && (connectFlag == 0))	//Address find
+	  		 {  		 	
+	 				DDRC = 0b01100110;
+	  		 	PORTC = 0x00;
+	  		 	delay(50);
+	  		 	discoverFlag = 0;
+	  		 	Send_ConnectAddressInputDrone(address);  	  		//  Connect Start 			 	
+	  		 }  		
+	  		 else if (discoverFlag == 4)	// Address not find : re-try
+	  		 {
+	  		 	Send_Discover(DiscoverStart);
+	  		 	PreviousMillis = millis();
+	  		 }
+	  		 else
+	  		 {	  	
+		  		if (TimeCheck(400))	//time out & LED
+	    		{
+	      		if (displayLED++ == 4) 
+	      		{
+	      			displayLED = 0;	 
+	      			delay(50);     
+	      			Send_Discover(DiscoverStart);
+	      		}
+	      		PORTC = (0b1<<displayLED) | (0b10000000>>displayLED);	   
+	      		PreviousMillis = millis();   		     
+					}
+	  		}	
+	  	}
+	  	delay(50);  	
+	  }
+	}
 }
 
 
@@ -559,11 +660,11 @@ void CoDroneClass::Send_ConnectNearbyDrone()
 
 
 
-void CoDroneClass::Send_Control(int8_t _throttle, int8_t _yaw, int8_t _roll, int8_t _pitch, int interval)
+void CoDroneClass::Control(int interval)
 {
     if (TimeCheck(interval))  //delay
     {
-      Send_Control(_throttle, _yaw, _roll, _pitch);
+      Control();
       PreviousMillis = millis();
     }
 }
@@ -588,8 +689,8 @@ void CoDroneClass::Send_Processing(byte _data[], byte _length, byte _crc[])
   //CRC
   _packet[_length + 4] =_crc[0];
   _packet[_length + 5] =_crc[1]; 
-  
-  Serial.write(_packet, _length + 6);	
+    
+ 	Serial.write(_packet, _length + 6);
 }
 
 
@@ -603,10 +704,16 @@ void CoDroneClass::Send_Processing(byte _data[], byte _length, byte _crc[])
 /***************************************************************************/
 void CoDroneClass::Receive()
 {
-  if (Serial.available() > 0)
+	
+	if (Serial.available() > 0)
   {
     int input = Serial.read();
-
+	
+	/*
+  if (Serial1.available() > 0)
+  {
+    int input = Serial1.read();
+*/
     cmdBuff[cmdIndex++] = (char)input;
 
     if (cmdIndex >= MAX_PACKET_LENGTH)
@@ -644,7 +751,7 @@ void CoDroneClass::Receive()
           receiveDtype =  cmdBuff[2];
           dataBuff[cmdIndex - 3] = cmdBuff[cmdIndex - 1];
         }
-        else if (receiveDtype != 0xc2) //not message
+        else if (receiveDtype != 0xD0) //not message string
         {
           if (cmdIndex == 4)
           {
@@ -653,7 +760,8 @@ void CoDroneClass::Receive()
           }
           else if (cmdIndex > 4)
           {
-            if (receiveLength + 5 > cmdIndex)	 	dataBuff[cmdIndex - 3] = cmdBuff[cmdIndex - 1];            
+            if (receiveLength + 5 > cmdIndex)	 	dataBuff[cmdIndex - 3] = cmdBuff[cmdIndex - 1];     
+                   
             else if (receiveLength + 6 > cmdIndex)	crcBuff[0]  = cmdBuff[cmdIndex - 1];
             
             else if (receiveLength + 6 <= cmdIndex)
@@ -663,12 +771,21 @@ void CoDroneClass::Receive()
               if (CRC16_Check(dataBuff, receiveLength, crcBuff))  receiveComplete = 1;
               else  receiveComplete = -1;
 
+						//	Serial.println(receiveComplete);
               ///////////////////////////////////////////////////////////
               if (receiveComplete == 1)
-              {
-                if (receiveDtype  == 0xC0)		receiveState = dataBuff[2];
-                
-                else if (receiveDtype  == 0xC3)
+              {                       	
+              	if (receiveDtype  == dType_LinkState)		
+                {
+                	receiveLinkState = dataBuff[2];
+                }
+                	
+                else if (receiveDtype  == dType_LinkEvent)		
+                {
+                	receiveEventState = dataBuff[2];
+                }
+                                
+                else if (receiveDtype  == dType_LinkDiscoveredDevice)
                 {
                   byte devIndex = dataBuff[2];
 
@@ -704,7 +821,8 @@ void CoDroneClass::Receive()
                   }
 
                   devCount = devFind[0] +  devFind[1] +  devFind[2];
-                  //  DisplayAddress(devIndex); //Address display
+                //Serial.println(devCount);
+                //  DisplayAddress(devCount); //Address display
                 }
               }
               ///////////////////////////////////////////////////////////
@@ -722,9 +840,53 @@ void CoDroneClass::Receive()
       }
     }
   }
-  StateCheck();
+  ReceiveEventCheck();
 }
 /***************************************************************************/
+
+void CoDroneClass::PrintDroneAddress()
+{
+	for(char i = 0; i <= 4; i++)
+	{
+		Serial.print("0x");
+		Serial.print(devAddressConnected[i],HEX);
+		Serial.print(", ");
+	}
+	Serial.print("0x");
+	Serial.print(devAddressConnected[5],HEX);
+}
+
+
+void CoDroneClass::DisplayAddress(byte count)
+{
+
+  if (count == 1)    Serial.print("index 0 : ");
+  else if (count == 2)  Serial.print("index 1 : ");
+  else if (count == 3)     Serial.print("index 2 : ");
+
+  for (int i = 0; i <= 5; i++)
+  {
+    if (count == 1)
+    {
+      Serial.print(devAddress0[i], HEX); Serial.print("\t");
+    }
+    else if (count == 2)
+    {
+      Serial.print(devAddress1[i], HEX); Serial.print("\t");
+    }
+
+    else if (count == 3)
+    {
+      Serial.print(devAddress2[i], HEX); Serial.print("\t");
+    }
+  }
+  /*
+  if (count == 0)     Serial.println(DevRSSi0 - 256);
+  else if (count == 1)   Serial.println(DevRSSi1 - 256);
+  else if (count == 2)   Serial.println(DevRSSi2 - 256);
+  */
+}
+
 
 
 void CoDroneClass::LED(int command)
@@ -789,52 +951,232 @@ void CoDroneClass::ConnectLED()
 	PORTC = 0b00100100;	
 }
 
-void CoDroneClass::StateCheck()
+void CoDroneClass::LinkStateCheck()
 {
-  if ((receiveComplete > 0) && (receiveState > 0))
-  {
-    if (receiveState == link_None)
+	Send_LinkState();
+  delay(50);
+  while (receiveLinkState <= 0)  Receive();
+}
+
+
+
+
+void CoDroneClass::ReceiveEventCheck()
+{
+  if ((receiveComplete > 0) && (receiveEventState > 0))
+  {  	  	
+ // 	Serial.println(receiveEventState);
+
+		if (receiveEventState == linkEvent_None)
     {
-      //  Serial.println("0 : NONE");
-    }
-    else if (receiveState == link_Boot)
+    	/*
+
+    	 Serial.print(linkEvent_None);    	 
+       Serial.println(" : linkEvent_None");
+      */
+    }    
+		else if (receiveEventState == linkEvent_SystemReset)
     {
-      //  Serial.println("1 : Boot");
+    	/*
+    	 Serial.print(linkEvent_SystemReset);
+       Serial.println(" : linkEvent_SystemReset");
+      */
     }
-    else if (receiveState == link_Initialized)
+    
+		else if (receiveEventState == linkEvent_Initialized)
     {
-      //   Serial.println("2 : Init");
+    	/*
+    	 Serial.print(linkEvent_Initialized);
+       Serial.println(" : linkEvent_Initialized");
+      */
     }
-    else if (receiveState == link_Discovering)
-    {
-      //   Serial.println("3 : Discover Start");
-    }
-    else if (receiveState == link_DiscoveryStop)
+    
+		else if (receiveEventState == linkEvent_Scanning)
     {
     	if(discoverFlag == 1) discoverFlag = 2;
-      //   Serial.println("4 : Discover Stop");
+    	/*
+       Serial.print(linkEvent_Scanning);
+       Serial.println(" : linkEvent_Scanning");
+      */
     }
-    //////////////////////////////////////////////////
-    else if (receiveState == link_Connecting)
+		else if (receiveEventState == linkEvent_ScanStop)
     {
-      //   Serial.println("5 : Connecting");
+    	if(discoverFlag == 2)
+    	{
+    		if(devCount > 0)
+    		{
+    		 discoverFlag = 3;
+    		}
+    		else
+    		{
+    			discoverFlag = 4;
+    		}    		 
+    	}
+    	
+    	/*
+    	 Serial.print(linkEvent_ScanStop);
+       Serial.println(" : linkEvent_ScanStop");
+      */
     }
-    else if (receiveState == link_ConnectionFaild)
+    
+    
+		else if (receiveEventState == linkEvent_FoundDroneService)
     {
-      //   Serial.println("6 : ConnectionFaild");
+    	/*
+    	 Serial.print(linkEvent_FoundDroneService);
+       Serial.println(" : linkEvent_FoundDroneService");
+      */
     }
-    else if (receiveState == link_Connected)
+        
+    
+    
+		else if (receiveEventState == linkEvent_Connecting)
     {
-      //   Serial.println("7 : Connected");
+    	/*
+    	 Serial.print(linkEvent_Connecting);
+       Serial.println(" : linkEvent_Connecting");
+      */
     }
-    else if (receiveState == link_LookupAttribute)
+		else if (receiveEventState == linkEvent_Connected)
     {
-      //    Serial.println("8 : LookupAttribute");
+    	/*
+    	 Serial.print(linkEvent_Connected);
+       Serial.println(" : linkEvent_Connected");
+      */
     }
-    else if (receiveState == link_Ready)
+    
+    
+    
+    
+		else if (receiveEventState == linkEvent_ConnectionFaild)
     {
-      paringState = true;
-      
+    	/*
+    	 Serial.print(linkEvent_ConnectionFaild);
+       Serial.println(" : linkEvent_ConnectionFaild");
+      */
+    }
+		else if (receiveEventState == linkEvent_ConnectionFaildNoDevices)
+    {
+    	/*
+    	 Serial.print(linkEvent_ConnectionFaildNoDevices);
+       Serial.println(" : linkEvent_ConnectionFaildNoDevices");
+      */  
+    }
+		else if (receiveEventState == linkEvent_ConnectionFaildNotReady)
+    {
+    	/*
+    	 Serial.print(linkEvent_ConnectionFaildNotReady);
+       Serial.println(" : linkEvent_ConnectionFaildNotReady");
+      */
+    }
+    
+    
+    
+    else if (receiveEventState == linkEvent_PairingStart)
+    {
+    	/*
+    	 Serial.print(linkEvent_PairingStart);
+       Serial.println(" : linkEvent_PairingStart");
+      */
+    }
+    
+    else if (receiveEventState == linkEvent_PairingSuccess)
+    {
+    	/*
+    	 Serial.print(linkEvent_PairingSuccess);
+       Serial.println(" : linkEvent_PairingSuccess");
+      */
+    }
+    else if (receiveEventState == linkEvent_PairingFaild)
+    {
+    	/*
+    	 Serial.print(linkEvent_PairingFaild);
+       Serial.println(" : linkEvent_PairingFaild");
+      */
+    }
+    
+    
+    else if (receiveEventState == linkEvent_BondingSuccess)
+    {
+    	/*
+    	 Serial.print(linkEvent_BondingSuccess);
+       Serial.println(" : linkEvent_BondingSuccess");
+      */
+    }
+    
+    
+    else if (receiveEventState == linkEvent_LookupAttribute)
+    {
+    	/*
+    	 Serial.print(linkEvent_LookupAttribute);
+       Serial.println(" : linkEvent_LookupAttribute");
+      */
+    }
+    
+    
+    else if (receiveEventState == linkEvent_RssiPollingStart)
+    {
+    	/*
+    	 Serial.print(linkEvent_RssiPollingStart);
+       Serial.println(" : linkEvent_RssiPollingStart");
+      */
+    }    
+    else if (receiveEventState == linkEvent_RssiPollingStop)
+    {
+    	/*
+    	 Serial.print(linkEvent_RssiPollingStop);
+       Serial.println(" : linkEvent_RssiPollingStop");
+      */
+    }
+    
+    
+    else if (receiveEventState == linkEvent_DiscoverService)
+    {
+    	/*
+    	 Serial.print(linkEvent_DiscoverService);
+       Serial.println(" : linkEvent_DiscoverService");
+      */
+    }
+    else if (receiveEventState == linkEvent_DiscoverCharacteristic)
+    {
+    	/*
+    	 Serial.print(linkEvent_DiscoverCharacteristic);
+       Serial.println(" : linkEvent_DiscoverCharacteristic");
+      */
+    }
+    else if (receiveEventState == linkEvent_DiscoverCharacteristicDroneData)
+    {
+    	/*
+    	 Serial.print(linkEvent_DiscoverCharacteristicDroneData);
+       Serial.println(" : linkEvent_DiscoverCharacteristicDroneData");
+      */      
+    }    
+    else if (receiveEventState == linkEvent_DiscoverCharacteristicDroneConfig)
+    {
+    	/*
+    	 Serial.print(linkEvent_DiscoverCharacteristicDroneConfig);
+       Serial.println(" : linkEvent_DiscoverCharacteristicDroneConfig");
+      */
+    }
+    else if (receiveEventState == linkEvent_DiscoverCharacteristicUnknown)
+    {
+    	/*
+    	 Serial.print(linkEvent_DiscoverCharacteristicUnknown);
+       Serial.println(" : linkEvent_DiscoverCharacteristicUnknown");
+      */
+    }
+    else if (receiveEventState == linkEvent_DiscoverCCCD)
+    {
+    	/*
+    	 Serial.print(linkEvent_DiscoverCCCD);
+       Serial.println(" : linkEvent_DiscoverCCCD");
+      */
+    }
+    
+    
+    
+    else if (receiveEventState == linkEvent_ReadyToControl)
+    {
       if(connectFlag == 1)
       {
 				connectFlag = 0;         
@@ -844,27 +1186,95 @@ void CoDroneClass::StateCheck()
 				{
 				//	devAddressConnected[i] = devAddressBuf[i];
 			    EEPROM.write(eep_AddressFirst + i, devAddressBuf[i]); //servo1 standard position					
-				}
-			}
-			
-      ConnectLED();
-      // Serial.println("9 : Ready");
-    }
-    else if (receiveState == link_Disconnecting)
-    {
-    
-      // Serial.println("10 : Disconnecting");
-    }
-    else if (receiveState == link_Disconnected)
-    {
-    		if(discoverFlag == 2) discoverFlag = 3;
-      //  Serial.println("11 : Disconnected");
+			  }
+			  
+			  /*
+	    	 Serial.print(linkEvent_ReadyToControl);
+	       Serial.println(" : linkEvent_ReadyToControl");
+	      */ 
+		  }
+		  ConnectLED();
+		  pairing = true;    
+		  delay(500);
     }
     
-    CoDrone.receiveComplete = -1;
-    CoDrone.receiveDtype = -1;
-    CoDrone.receiveLength = -1;
-    CoDrone.receiveState = -1;
+    
+    else if (receiveEventState == linkEvent_Disconnecting)
+    {
+    	/*
+    	 Serial.print(linkEvent_Disconnecting);
+       Serial.println(" : linkEvent_Disconnecting");
+      */
+    }
+    else if (receiveEventState == linkEvent_Disconnected)
+    {
+    	/*
+    	 Serial.print(linkEvent_Disconnected);
+       Serial.println(" : linkEvent_Disconnected");
+      */
+    }
+    
+    
+    else if (receiveEventState == linkEvent_GapLinkParamUpdate)
+    {
+    	/*
+    	 Serial.print(linkEvent_GapLinkParamUpdate);
+       Serial.println(" : linkEvent_GapLinkParamUpdate");
+      */
+    }
+ 
+    else if (receiveEventState == linkEvent_RspReadError)
+    {
+    	/*
+    	 Serial.print(linkEvent_RspReadError);
+       Serial.println(" : linkEvent_RspReadError");
+      */
+    }
+    
+    else if (receiveEventState == linkEvent_RspReadSuccess)
+    {
+    	/*
+    	 Serial.print(linkEvent_RspReadSuccess);
+       Serial.println(" : linkEvent_RspReadSuccess");
+      */
+    }
+    
+    else if (receiveEventState == linkEvent_RspWriteError)
+    {
+    	/*
+    	 Serial.print(linkEvent_RspWriteError);
+       Serial.println(" : linkEvent_RspWriteError");
+      */
+    }
+    else if (receiveEventState == linkEvent_RspWriteSuccess)
+    {
+    	/*
+    	 Serial.print(linkEvent_RspWriteSuccess);
+       Serial.println(" : linkEvent_RspWriteSuccess");
+      */
+    }
+         
+    else if (receiveEventState == linkEvent_SetNotify)
+    {
+    	/*
+    	 Serial.print(linkEvent_SetNotify);
+       Serial.println(" : linkEvent_SetNotify");
+      */
+    }
+    
+    else if (receiveEventState == linkEvent_Write)
+    {
+    	/*
+    	 Serial.print(linkEvent_Write);
+       Serial.println(" : linkEvent_Write");
+      */
+    }
+    
+    receiveComplete = -1;
+    receiveDtype = -1;
+    receiveLength = -1;
+    receiveEventState = -1;
+    receiveLinkState = -1;
   }
 }
 
@@ -965,4 +1375,4 @@ int CoDroneClass::AnalogScaleChange(int analogValue)
 
 /*********************************************************/
 
-CoDroneClass CoDrone;
+CoDroneClass CoDrone;	

@@ -2,7 +2,7 @@
   SmartDroneControl.h - SmartDroneControl library
   Copyright (C) 2014 RoboLink.  All rights reserved.
   LastUpdate : 2015-08-07
-*/ 
+*/
 
 #ifndef CoDrone_h
 #define CoDrone_h
@@ -22,7 +22,6 @@ typedef uint8_t u8;
 #define START1          	0x0A
 #define START2          	0x55
 
-
 //////////////////////////////////////////////////////////////////////////////////
 
 #define OFF				0x00
@@ -36,19 +35,21 @@ typedef uint8_t u8;
 /////////////////////////////////////////////
 /***********************************************************************/
 
-#define ROLL		CoDrone.roll
-#define PITCH		CoDrone.pitch
-#define YAW		CoDrone.yaw
-#define THROTTLE	CoDrone.throttle
-#define EVENT		CoDrone.event
-#define STATE		CoDrone.state
+#define ROLL					CoDrone.roll
+#define PITCH					CoDrone.pitch
+#define YAW						CoDrone.yaw
+#define THROTTLE			CoDrone.throttle
+#define EVENT					CoDrone.event
+#define STATE					CoDrone.state
 #define SEND_INTERVAL	CoDrone.SendInterval
 #define ANALOG_OFFSET	CoDrone.analogOffset
 
 /***********************************************************************/
-#define STOP         				0
-#define START          			1
-#define	PARING_STATE				CoDrone.paringState
+
+#define DiscoverStop  			cType_DiscoverStop
+#define DiscoverStart  			cType_DiscoverStart
+
+#define	PAIRING							CoDrone.pairing
 
 #define	NeardbyDrone    		1
 #define	ConnectedDrone  		2
@@ -58,7 +59,6 @@ typedef uint8_t u8;
 #define	eep_AddressCheck   	10
 #define	eep_AddressFirst  	11
 #define	eep_AddressEnd  		15
-
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -105,6 +105,7 @@ typedef uint8_t u8;
 
 enum ModeLink
 {
+	/*
 	link_None = 0, ///< 없음
 	link_Boot, ///< 부팅
 	link_Initialized, ///< 장치 초기화 완료 (이벤트 실행 후 바로 Disconnected로 전환)
@@ -118,7 +119,83 @@ enum ModeLink
 	link_Disconnecting, ///< 장치 연결 해제 중
 	link_Disconnected, ///< 장치 연결 해제 완료
 	link_EndOfType
+	*/
+	
+	linkMode_None = 0,	 	 ///< 없음
+	linkMode_Boot,	 	 	 ///< 부팅 	 	
+	linkMode_Ready,	 		 ///< 대기(연결 전)
+	linkMode_Connecting,	 	 ///< 장치 연결 중
+	linkMode_Connected,	 	 ///< 장치 연결 완료
+	linkMode_Disconnecting,	 	 ///< 장치 연결 해제 중
+	linkMode_ReadyToReset,	 	 ///< 리셋 대기(1초 뒤에 장치 리셋)	
+	linkMode_EndOfType
+
 };
+
+
+
+enum EventLink
+	{
+		linkEvent_None = 0,		///< 없음
+
+		linkEvent_SystemReset,		///< 시스템 리셋
+
+		linkEvent_Initialized,		///< 장치 초기화 완료
+
+		linkEvent_Scanning,		///< 장치 검색 시작
+		linkEvent_ScanStop,		///< 장치 검색 중단
+
+		linkEvent_FoundDroneService,	///< 드론 서비스 검색 완료
+
+		linkEvent_Connecting,		///< 장치 연결 시작		
+		linkEvent_Connected,		///< 장치 연결
+
+		linkEvent_ConnectionFaild,		///< 연결 실패
+		linkEvent_ConnectionFaildNoDevices,	///< 연결 실패 - 장치가 없음
+		linkEvent_ConnectionFaildNotReady,	///< 연결 실패 - 대기 상태가 아님
+
+		linkEvent_PairingStart,		///< 페어링 시작
+		linkEvent_PairingSuccess,		///< 페어링 성공
+		linkEvent_PairingFaild,		///< 페어링 실패
+
+		linkEvent_BondingSuccess,		///< Bonding 성공
+
+		linkEvent_LookupAttribute,		///< 장치 서비스 및 속성 검색(GATT Event 실행)
+
+		linkEvent_RssiPollingStart,		///< RSSI 풀링 시작
+		linkEvent_RssiPollingStop,		///< RSSI 풀링 중지
+
+		linkEvent_DiscoverService,			///< 서비스 검색
+		linkEvent_DiscoverCharacteristic,		///< 속성 검색
+		linkEvent_DiscoverCharacteristicDroneData,	///< 속성 검색
+		linkEvent_DiscoverCharacteristicDroneConfig,	///< 속성 검색
+		linkEvent_DiscoverCharacteristicUnknown,	///< 속성 검색
+		linkEvent_DiscoverCCCD,			///< CCCD 검색
+
+		linkEvent_ReadyToControl,		///< 제어 준비 완료
+
+		linkEvent_Disconnecting,		///< 장치 연결 해제 시작
+		linkEvent_Disconnected,		///< 장치 연결 해제 완료
+
+		linkEvent_GapLinkParamUpdate,	///< GAP_LINK_PARAM_UPDATE_EVENT
+
+		linkEvent_RspReadError,		///< RSP 읽기 오류
+		linkEvent_RspReadSuccess,		///< RSP 읽기 성공
+
+		linkEvent_RspWriteError,		///< RSP 쓰기 오류
+		linkEvent_RspWriteSuccess,		///< RSP 쓰기 성공
+
+		linkEvent_SetNotify,		///< Notify 활성화
+
+		linkEvent_Write,			///< 데이터 쓰기 이벤트
+
+		EndOfType
+	};
+
+
+
+
+
 
 
 /***********************************************************************/
@@ -170,11 +247,20 @@ enum DataType
 	dType_UpdateSub, ///< 서브 펌웨어 업데이트 데이터
 	
 	//확장
+	/*
 	dType_LinkState = 0xC0, ///< 링크 모듈의 상태
 	dType_LinkRssi, ///< 연결된 장치의 RSSI값
 	dType_StringMessage, ///< 문자열 메세지
 	dType_DiscoveredDevice, ///< 검색된 장치
-	
+	*/
+	dType_LinkState = 0xC0,		///< 링크 모듈의 상태
+	dType_LinkEvent,		///< 링크 모듈의 이벤트
+	dType_LinkEventAddress,		///< 링크 모듈의 이벤트 + 주소
+	dType_LinkRssi,			///< 링크와 연결된 장치의 RSSI값
+	dType_LinkDiscoveredDevice,	///< 검색된 장치
+	dType_LinkPasscode,          	///< 연결할 대상 장치의 암호 지정
+
+	dType_StringMessage = 0xD0, 	///< 문자열 메세지
 	dType_EndOfType
 };
 
@@ -203,8 +289,8 @@ enum CommandType
 	cType_Request = 0x90, ///< 지정한 타입의 데이터 요청
 	
 	//확장
-	cType_Tester = 0xE0 ,
-	cType_SystemReset, ///< 시스템 재시작
+	//cType_Tester = 0xE0 ,
+	cType_SystemReset  = 0xE0, ///< 시스템 재시작
 	cType_DiscoverStart, ///< 장치 검색 시작
 	cType_DiscoverStop, ///< 장치 검색 중단
 	cType_Connect, ///< 연결
@@ -396,38 +482,34 @@ public:
 	unsigned short CRC16_Make(unsigned char *buf, int len); //CRC16-CCITT Format
 	boolean CRC16_Check(unsigned char data[], int len, unsigned char crc[]);
 	
-	void Send_Control(int8_t _throttle, int8_t _yaw, int8_t _roll, int8_t _pitch);
-	void Send_Control(int8_t _throttle, int8_t _yaw, int8_t _roll, int8_t _pitch, int interval);
+	void Control();
+	void Control(int interval);
 	
 	void Send_Processing(byte _data[], byte _length, byte _crc[]);
 	
-	void Send_LedColor(byte sendMode, byte sendColor, byte sendInterval);
-	void Send_LedColor(byte sendMode, byte r, byte g, byte b, byte sendInterval);
-	void Send_LedColor(byte sendMode, byte sendColor[], byte sendInterval);
 	
-	void Send_LedEvent(byte sendMode, byte sendColor, byte sendInterval, byte sendRepeat);
-	void Send_LedEvent(byte sendMode, byte sendColor[], byte sendInterval, byte sendRepeat);
-	void Send_LedEvent(byte sendMode, byte r, byte g, byte b, byte sendInterval, byte sendRepeat);
-				
-	void Send_LinkReset();
+	
+	
+	
 	void Send_LinkState();
 	void Send_Discover(byte action);
 	void Send_Connect(byte index);
 	void Send_Disconnect();		
 	void Send_RSSI_Polling(byte action);
 	
-	
+		void Send_Ping();
 	
 	void Send_DroneMode(byte event);
 	void Send_Coordinate(byte mode);
 	void Send_Trim(byte event);
 	
-	void Send_FlightEvent(byte event);
+	void FlightEvent(byte event);
 	void Send_ResetHeading();	
 	void Send_Command(int sendCommand, int sendOption);
 	
 		/////////////////////////////////
 		
+
 	void AutoConnect(byte mode);
   void AutoConnect(byte mode, byte address[]);	
 	void Send_ConnectAddressInputDrone(byte address[]);
@@ -435,9 +517,24 @@ public:
 	void Send_ConnectNearbyDrone();
 	
 	
-	void Send_Ping();
+	void LedColor(byte sendMode, byte sendColor, byte sendInterval);
+	void LedColor(byte sendMode, byte r, byte g, byte b, byte sendInterval);
+	void LedColor(byte sendMode, byte sendColor[], byte sendInterval);
 	
-	void StateCheck();
+	void LedEvent(byte sendMode, byte sendColor, byte sendInterval, byte sendRepeat);
+	void LedEvent(byte sendMode, byte sendColor[], byte sendInterval, byte sendRepeat);
+	void LedEvent(byte sendMode, byte r, byte g, byte b, byte sendInterval, byte sendRepeat);
+					
+	void LinkReset();
+	
+	
+			/////////////////////////////////
+	
+	
+	void PrintDroneAddress();
+
+	void LinkStateCheck();
+	void ReceiveEventCheck();
 	void StartLED();
 	void ConnectLED();
 	/////////////////////////////////
@@ -450,16 +547,23 @@ public:
 	int receiveDtype;
 	int receiveOption;
 	int receiveLength;
-	int receiveState;
+	int receiveEventState;
+	int receiveLinkState;
 	int receiveComplete;
 	int receiveCRC;
 
 
 int discoverFlag;
 int connectFlag;
+
+
+
+byte displayLED = 0;
+
+
 /////////////////////////////////
 	
-	
+	void DisplayAddress(byte count);
 	
 
 	
@@ -479,7 +583,7 @@ int connectFlag;
 	byte devAddressBuf[6];
 	byte devAddressConnected[6];
 	
-	boolean paringState = 0;
+	boolean pairing = 0;
 //*****************************************/
 	
 	/////////////////////////////////
