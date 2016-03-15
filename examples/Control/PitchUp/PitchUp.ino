@@ -19,7 +19,7 @@ void setup()
 
     delay(2000);                          // 대기 시간
 
-    PITCH = 50;                           // PITCH 값 입력
+    PITCH = 100;                           // PITCH 값 입력
     CoDrone.Control();                   // 조종값 전송
     
     delay(500);                           // 대기 시간

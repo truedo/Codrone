@@ -73,37 +73,42 @@ void CoDroneClass::begin(void)
 	SendInterval = 100; //millis seconds				
 	analogOffset = 10; // analog sensor offset
 		 
-		StartLED();
+	roll = 0;
+	pitch = 0;
+	yaw = 0;
+	throttle = 0;
+		 
+	StartLED();
 		
-		if (EEPROM.read(eep_AddressCheck) == 1)
-		{  	
-			for (int i = 0; i <= 5; i++)
-			{
-				devAddressConnected[i] = EEPROM.read(eep_AddressFirst+i);
-			}		
-		}
-		
-		pinMode(8, INPUT_PULLUP);
-		pinMode(9, INPUT_PULLUP);
-		pinMode(10, INPUT_PULLUP);
-		
-		pinMode(11, INPUT);
-		pinMode(12, OUTPUT);
-		pinMode(13, OUTPUT);
-		pinMode(14, INPUT);
-		pinMode(15, INPUT);
-		pinMode(16, OUTPUT);
-		pinMode(17, OUTPUT);
-		pinMode(18, INPUT);
-		
-		digitalWrite(11, LOW);
-		digitalWrite(12, LOW);
-		digitalWrite(13, LOW);
-		digitalWrite(14, LOW);
-		digitalWrite(15, LOW);
-		digitalWrite(16, LOW);
-		digitalWrite(17, LOW);
-		digitalWrite(18, LOW);
+	if (EEPROM.read(eep_AddressCheck) == 1)
+	{  	
+		for (int i = 0; i <= 5; i++)
+		{
+			devAddressConnected[i] = EEPROM.read(eep_AddressFirst+i);
+		}		
+	}
+	
+	pinMode(8, INPUT_PULLUP);
+	pinMode(9, INPUT_PULLUP);
+	pinMode(10, INPUT_PULLUP);
+	
+	pinMode(11, INPUT);
+	pinMode(12, OUTPUT);
+	pinMode(13, OUTPUT);
+	pinMode(14, INPUT);
+	pinMode(15, INPUT);
+	pinMode(16, OUTPUT);
+	pinMode(17, OUTPUT);
+	pinMode(18, INPUT);
+	
+	digitalWrite(11, LOW);
+	digitalWrite(12, LOW);
+	digitalWrite(13, LOW);
+	digitalWrite(14, LOW);
+	digitalWrite(15, LOW);
+	digitalWrite(16, LOW);
+	digitalWrite(17, LOW);
+	digitalWrite(18, LOW);
 }
 
 /***************************************************************************/
@@ -211,6 +216,12 @@ void CoDroneClass::Control()
   _crc[1] = crcCal & 0xff;
   
   Send_Processing(_packet,_len,_crc);  
+  
+  roll = 0;
+	pitch = 0;
+	yaw = 0;
+	throttle = 0;  
+  
 }
 
 
@@ -856,7 +867,7 @@ void CoDroneClass::PrintDroneAddress()
 	Serial.print(devAddressConnected[5],HEX);
 }
 
-
+/**********************************************************/
 void CoDroneClass::DisplayAddress(byte count)
 {
 
@@ -886,7 +897,7 @@ void CoDroneClass::DisplayAddress(byte count)
   else if (count == 2)   Serial.println(DevRSSi2 - 256);
   */
 }
-
+/**********************************************************/
 
 
 void CoDroneClass::LED(int command)
@@ -958,7 +969,7 @@ void CoDroneClass::LinkStateCheck()
   while (receiveLinkState <= 0)  Receive();
 }
 
-
+/**********************************************************/
 
 
 void CoDroneClass::ReceiveEventCheck()
@@ -1045,9 +1056,6 @@ void CoDroneClass::ReceiveEventCheck()
       */
     }
     
-    
-    
-    
 		else if (receiveEventState == linkEvent_ConnectionFaild)
     {
     	/*
@@ -1069,7 +1077,6 @@ void CoDroneClass::ReceiveEventCheck()
        Serial.println(" : linkEvent_ConnectionFaildNotReady");
       */
     }
-    
     
     
     else if (receiveEventState == linkEvent_PairingStart)
@@ -1172,9 +1179,7 @@ void CoDroneClass::ReceiveEventCheck()
        Serial.println(" : linkEvent_DiscoverCCCD");
       */
     }
-    
-    
-    
+          
     else if (receiveEventState == linkEvent_ReadyToControl)
     {
       if(connectFlag == 1)

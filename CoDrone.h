@@ -19,12 +19,12 @@ typedef uint8_t u8;
 //////////////////////////////////////////////////////////////////////////////////
 
 //START CODE
-#define START1          	0x0A
-#define START2          	0x55
+#define START1    	0x0A
+#define START2   		0x55
 
 //////////////////////////////////////////////////////////////////////////////////
 
-#define OFF				0x00
+#define OFF					0x00
 #define ON					0x01
 	
 #define DOWN        0x00
@@ -60,9 +60,7 @@ typedef uint8_t u8;
 #define	eep_AddressFirst  	11
 #define	eep_AddressEnd  		15
 
-
 //////////////////////////////////////////////////////////////////////////
-
 
 #define Flight 					dMode_Flight
 #define FlightNoGuard		dMode_FlightNoGuard,
@@ -89,7 +87,6 @@ typedef uint8_t u8;
 #define CircleRight			fEvent_CircleRight
 #define Rotate180				fEvent_Rotate180
 
-
 #define RollIncrease			trim_RollIncrease
 #define RollDecrease			trim_RollDecrease
 #define PitchIncrease			trim_PitchIncrease
@@ -99,28 +96,10 @@ typedef uint8_t u8;
 #define ThrottleIncrease	trim_ThrottleIncrease
 #define ThrottleDecrease	trim_ThrottleDecrease
 
-
-
 /***********************************************************************/
 
 enum ModeLink
 {
-	/*
-	link_None = 0, ///< 없음
-	link_Boot, ///< 부팅
-	link_Initialized, ///< 장치 초기화 완료 (이벤트 실행 후 바로 Disconnected로 전환)
-	link_Discovering , ///< 장치 검색
-	link_DiscoveryStop, ///< 장치 검색 중단 (이벤트 실행 후 바로 Disconnected로 전환)
-	link_Connecting, ///< 장치 연결 중
-	link_ConnectionFaild, ///< 연결 실패 (이벤트 실행 후 바로 Disconnected로 전환)
-	link_Connected, ///< 장치 연결 완료
-	link_LookupAttribute, ///< 장치 서비스 및 속성 검색
-	link_Ready, ///< 장치 작동 대기
-	link_Disconnecting, ///< 장치 연결 해제 중
-	link_Disconnected, ///< 장치 연결 해제 완료
-	link_EndOfType
-	*/
-	
 	linkMode_None = 0,	 	 ///< 없음
 	linkMode_Boot,	 	 	 ///< 부팅 	 	
 	linkMode_Ready,	 		 ///< 대기(연결 전)
@@ -131,7 +110,6 @@ enum ModeLink
 	linkMode_EndOfType
 
 };
-
 
 
 enum EventLink
@@ -191,10 +169,6 @@ enum EventLink
 
 		EndOfType
 	};
-
-
-
-
 
 
 
@@ -263,7 +237,6 @@ enum DataType
 	dType_StringMessage = 0xD0, 	///< 문자열 메세지
 	dType_EndOfType
 };
-
 
 
 /***********************************************************************/
@@ -457,19 +430,6 @@ enum Colors
 };
 
 
-
-
-/***********************************************************************/
-/***********************************************************************/
-
-struct CommandBase
-{
-	u8 commandType; ///< 명령 타입
-	u8 option; ///< 명령에 대한 옵션(System.h에 정의한 값을 사용)
-};
-
-
-/***********************************************************************/
 /***********************************************************************/
 /***********************************************************************/
 
@@ -486,18 +446,14 @@ public:
 	void Control(int interval);
 	
 	void Send_Processing(byte _data[], byte _length, byte _crc[]);
-	
-	
-	
-	
-	
+		
 	void Send_LinkState();
 	void Send_Discover(byte action);
 	void Send_Connect(byte index);
 	void Send_Disconnect();		
 	void Send_RSSI_Polling(byte action);
 	
-		void Send_Ping();
+	void Send_Ping();
 	
 	void Send_DroneMode(byte event);
 	void Send_Coordinate(byte mode);
@@ -507,8 +463,8 @@ public:
 	void Send_ResetHeading();	
 	void Send_Command(int sendCommand, int sendOption);
 	
-		/////////////////////////////////
-		
+	/////////////////////////////////
+	void Receive(void);
 
 	void AutoConnect(byte mode);
   void AutoConnect(byte mode, byte address[]);	
@@ -526,17 +482,16 @@ public:
 	void LedEvent(byte sendMode, byte r, byte g, byte b, byte sendInterval, byte sendRepeat);
 					
 	void LinkReset();
-	
-	
-			/////////////////////////////////
-	
-	
+		
+	/////////////////////////////////
+		
 	void PrintDroneAddress();
-
 	void LinkStateCheck();
 	void ReceiveEventCheck();
 	void StartLED();
 	void ConnectLED();
+		
+	void DisplayAddress(byte count);
 	/////////////////////////////////
 
 	byte cmdBuff[MAX_PACKET_LENGTH];
@@ -552,23 +507,12 @@ public:
 	int receiveComplete;
 	int receiveCRC;
 
+	int discoverFlag;
+	int connectFlag;
 
-int discoverFlag;
-int connectFlag;
-
-
-
-byte displayLED = 0;
-
-
-/////////////////////////////////
-	
-	void DisplayAddress(byte count);
-	
-
-	
+	byte displayLED = 0;
+		
 //*****************************************/
-
 	byte devCount = 0;
 	byte devFind[3];
 	
@@ -586,26 +530,20 @@ byte displayLED = 0;
 	boolean pairing = 0;
 //*****************************************/
 	
-	/////////////////////////////////
-
-
-	//void IntervalSend(int interval, int8_t _throttle, int8_t _yaw, int8_t _roll, int8_t _pitch);
 	void ButtonPreesHoldWait(int button);
-	void ButtonPreesHoldWait(int button1, int button2);
-	
-	/////////////////////////////////
-
-
-	//////////////////////////////////
+	void ButtonPreesHoldWait(int button1, int button2);	
 	void ReadSensor(void);
 	void PrintSensor(void);
 	int AnalogScaleChange(int analogValue);			
+	
 	//////////////////////////////////
 	void LED(int command);
 	void Blink(int time, int count);	
+	
 	boolean TimeCheck(word interval); //milliseconds
 	boolean TimeOutConnetionCheck(word interval); //milliseconds	
 	//////////////////////////////////
+	
 	int roll;
 	int pitch;
 	int yaw;
@@ -616,13 +554,8 @@ byte displayLED = 0;
 	int state;	
 	int analogOffset;
 	
-	//////////////////////////////////
-	void Receive(void);
-	//byte cmdBuff[MAX_CMD_LENGTH];
-	//int cmdIndex;
-	//boolean checkHeader;
 
-
+	
 private:
 	byte packet[9];
 	long PreviousMillis;
