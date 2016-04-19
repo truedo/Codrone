@@ -44,7 +44,6 @@ static const unsigned short crc16tab[256] = {
   0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0
 };
 
-
 unsigned short CoDroneClass::CRC16_Make(unsigned char *buf, int len) //CRC16-CCITT Format
 {
   unsigned short crc = 0 ;
@@ -58,10 +57,12 @@ unsigned short CoDroneClass::CRC16_Make(unsigned char *buf, int len) //CRC16-CCI
 boolean CoDroneClass::CRC16_Check(unsigned char data[], int len, unsigned char crc[])
 {
   boolean crcCheck = false;
-  unsigned short receiveCRC = ((crc[0] << 8) | (crc[1]  & 0xff));
+  
+  unsigned short receiveCRC = ((crc[1] << 8) | (crc[0]  & 0xff));
   unsigned short  makeCRC = CRC16_Make(data, len + 2);
-  if (receiveCRC == makeCRC )	   	  	crcCheck = true;
-  else					  										crcCheck = false;
+  
+  if (receiveCRC == makeCRC )	   	   	crcCheck = true;
+  else					  								  	crcCheck = false;
   return crcCheck;
 }
 
@@ -69,16 +70,15 @@ boolean CoDroneClass::CRC16_Check(unsigned char data[], int len, unsigned char c
 
 void CoDroneClass::begin(void)
 {
-	
-	SendInterval = 100; //millis seconds				
-	analogOffset = 10; // analog sensor offset
-		 
+	SendInterval = 50; // millis seconds				
+	analogOffset = 10;	// analog sensor offset
+
 	roll = 0;
 	pitch = 0;
 	yaw = 0;
 	throttle = 0;
-		 
-	StartLED();
+
+  StartLED();
 		
 	if (EEPROM.read(eep_AddressCheck) == 1)
 	{  	
@@ -109,6 +109,9 @@ void CoDroneClass::begin(void)
 	digitalWrite(16, LOW);
 	digitalWrite(17, LOW);
 	digitalWrite(18, LOW);
+	
+  delay(500);
+  Send_LinkModeBroadcast(LinkModeActive);
 }
 
 /***************************************************************************/
@@ -116,21 +119,26 @@ void CoDroneClass::begin(void)
 /***************************************************************************/
 ////////////////////link board////////////////////////
 
+void CoDroneClass::Send_LinkModeBroadcast(byte mode)
+{
+  Send_Command(cType_LinkModeBroadcast, mode);
+}
+
 
 void CoDroneClass::Send_LinkState()
 {
-  Send_Command(cType_Request, 0xc0);
+  Send_Command(cType_Request, dType_LinkState);
 }
 void CoDroneClass::LinkReset()
 {
-  Send_Command(cType_SystemReset, 0);
+  Send_Command(cType_LinkSystemReset, 0);
 }
 void CoDroneClass::Send_Discover(byte action)
 {	
-	if(action == DiscoverStop)	  	Send_Command(cType_DiscoverStop, 0);		//DiscoverStop
+	if(action == DiscoverStop)	  	Send_Command(cType_LinkDiscoverStop, 0);		//DiscoverStop
 	else if(action == DiscoverStart)	
 	{
-		Send_Command(cType_DiscoverStart, 0);  	//DiscoverStart  
+		Send_Command(cType_LinkDiscoverStart, 0);  	//DiscoverStart  
 		discoverFlag = 1;
 	}
 }
@@ -151,19 +159,28 @@ void CoDroneClass::Send_Connect(byte index) //0, 1, 2
 		for (int i = 0; i <= 5; i++)		devAddressBuf[i] = devAddress2[i];
 	}	
 	
-  Send_Command(cType_Connect, index);
+  Send_Command(cType_LinkConnect, index);
 }
 void CoDroneClass::Send_Disconnect()
 {
-  Send_Command(cType_Disconnect, 0);
+  Send_Command(cType_LinkDisconnect, 0);
 }
 void CoDroneClass::Send_RSSI_Polling(byte action)
 {
-	if(action == 0)	  		Send_Command(cType_RssiPollingStop, 0);				//RssiPollingStop
-	else if(action == 1)	Send_Command(cType_RssiPollingStart, 0x02);  	//RssiPollingStart
+	if(action == 0)	  		Send_Command(cType_LinkRssiPollingStop, 0);				//RssiPollingStop
+	else if(action == 1)	Send_Command(cType_LinkRssiPollingStart, 0x02);  	//RssiPollingStart	(0x02 * 100 = 200ms)
 }
 
 //////////////////ModeDrone/////////////////////////////
+
+
+
+void CoDroneClass::DroneModeChange(byte event)
+{
+	  Send_Command(cType_ModeDrone, event);
+	  delay(100);
+}
+
 
 void CoDroneClass::Send_DroneMode(byte event)
 {
@@ -180,10 +197,23 @@ void CoDroneClass::Send_Trim(byte event)
 {
 	  Send_Command(cType_Trim, event);
 }
+
+void CoDroneClass::Send_ClearGyroBiasAndTrim()
+{
+	  Send_Command(cType_ClearGyroBiasAndTrim, 0);
+}
+
+
 void CoDroneClass::FlightEvent(byte event)
 {
 	  Send_Command(cType_FlightEvent, event);
 }
+
+void CoDroneClass::DriveEvent(byte event)
+{
+	  Send_Command(cType_DriveEvent, event);
+}
+
 void CoDroneClass::Send_ResetHeading()
 {
 	  Send_Command(cType_ResetHeading, 0);
@@ -198,7 +228,7 @@ void CoDroneClass::Control()
   byte _packet[10];
   byte _crc[2];
   
-  byte _cType = 0x10;
+  byte _cType = dType_Control;
   byte _len = 4;
   
   //header
@@ -232,7 +262,7 @@ void CoDroneClass::Send_Command(int sendCommand, int sendOption)
   byte _packet[9];
   byte _crc[2];
   
-  byte _cType = 0x11;
+  byte _cType = dType_Command;
   byte _len   = 0x02;  
   
   //header
@@ -257,7 +287,7 @@ void CoDroneClass::LedColor(byte sendMode, byte sendColor, byte sendInterval)
   byte _packet[9];
   byte _crc[2];
   
-  byte _cType = 0x20;
+  byte _cType = dType_LedMode;
   byte _len   = 0x03;  
   
   //header
@@ -283,7 +313,7 @@ void CoDroneClass::LedColor(byte sendMode, byte r, byte g, byte b, byte sendInte
   byte _packet[9];
   byte _crc[2];
   
-  byte _cType = 0x24;
+  byte _cType = dType_LedModeColor;
   byte _len   = 0x05;  
   
   //header
@@ -309,7 +339,7 @@ void CoDroneClass::LedColor(byte sendMode, byte sendColor[], byte sendInterval)
   byte _packet[9];
   byte _crc[2];
   
-  byte _cType = 0x24;
+  byte _cType = dType_LedModeColor;
   byte _len   = 0x05;  
   
   //header
@@ -338,7 +368,7 @@ void CoDroneClass::LedEvent(byte sendMode, byte sendColor, byte sendInterval, by
   byte _packet[9];
   byte _crc[2];
   
-  byte _cType = 0x26;
+  byte _cType = dType_LedEvent;
   byte _len   = 0x04;  
   
   //header
@@ -365,7 +395,7 @@ void CoDroneClass::LedEvent(byte sendMode, byte sendColor[], byte sendInterval, 
   byte _packet[9];
   byte _crc[2];
   
-  byte _cType = 0x26;
+  byte _cType = dType_LedEventColor;
   byte _len   = 0x06;  
   
   //header
@@ -394,7 +424,7 @@ void CoDroneClass::LedEvent(byte sendMode, byte r, byte g, byte b, byte sendInte
   byte _packet[9];
   byte _crc[2];
   
-  byte _cType = 0x26;
+  byte _cType = dType_LedEventColor;
   byte _len   = 0x06;  
   
   //header
@@ -417,6 +447,19 @@ void CoDroneClass::LedEvent(byte sendMode, byte r, byte g, byte b, byte sendInte
   Send_Processing(_packet,_len,_crc);     
 }
 
+
+/////////////////////////////////////////////////////////////
+
+
+void CoDroneClass::Send_DroneState()
+{
+	Send_Command(cType_Request, Req_State);    
+}
+
+void CoDroneClass::Send_DroneAttitude()
+{
+	Send_Command(cType_Request, Req_Attitude);    
+}
 
 
 
@@ -441,6 +484,9 @@ void CoDroneClass::Send_Ping()
   Send_Processing(_packet,_len,_crc);  
     
 }
+/////////////////////////////////////////////////////////////
+
+
 
 
 void CoDroneClass::AutoConnect(byte mode)
@@ -464,39 +510,42 @@ void CoDroneClass::AutoConnect(byte mode)
 			
 	  	while(!pairing)
 	  	{  		
-	  		 Receive();  		 
-	  		   		 
-	  		 if((discoverFlag == 3) && (connectFlag == 0)) //Address find
-	  		 {	  		 	
-	  		 	DDRC = 0b01100110;
-	  		 	PORTC = 0x00;
-	  		 	  		 		  		 	
-	  		 	delay(50);
-	  		 	discoverFlag = 0;
-	  		 	Send_ConnectNearbyDrone();  	  		 				//  Connect Start
-	  		 }
-	  		 
-	  		 else if (discoverFlag == 4)	// Address not find : re-try
-	  		 {
-	  		 	delay(50);
-	  		 	Send_Discover(DiscoverStart);
-	  		 	PreviousMillis = millis();
-	  		 }
-	  		 else
-	  		 {	  	
-		  		if (TimeCheck(400))		//time out & LED
-	    		{
-	      		if (displayLED++ == 4) 
-	      		{
-	      			displayLED = 0;	 
-	      			delay(50);     
-	      			Send_Discover(DiscoverStart);
-	      		}
-	      		PORTC = (0b1<<displayLED) | (0b10000000>>displayLED);	   
-	      		PreviousMillis = millis();   		     
-					}
-	  		}	  		 
-	  	}
+	  		// Receive();  		 
+	  		 //if(!pairing)
+	  		// {
+		  		 if((discoverFlag == 3) && (connectFlag == 0)) //Address find
+		  		 {	  		 	
+		  		 	DDRC = 0b01100110;
+		  		 	PORTC = 0x00;
+		  		 	  		 		  		 	
+		  		 	delay(50);
+		  		 	discoverFlag = 0;
+		  		 	Send_ConnectNearbyDrone();  	  		 				//  Connect Start
+		  		 }
+		  		 
+		  		 else if (discoverFlag == 4)	// Address not find : re-try
+		  		 {
+		  		 	delay(50);
+		  		 	Send_Discover(DiscoverStart);
+		  		 	PreviousMillis = millis();
+		  		 }
+		  		 else
+		  		 {	  	
+			  		if (TimeCheck(400))		//time out & LED
+		    		{
+		      		if (displayLED++ == 4) 
+		      		{
+		      			displayLED = 0;	 
+		      			delay(50);     
+		      			Send_Discover(DiscoverStart);
+		      		}
+		      		PORTC = (0b1<<displayLED) | (0b10000000>>displayLED);	   
+		      		PreviousMillis = millis();   		     
+						}
+		  		}	  		 
+		  //	}
+		  Receive();  
+	  }
 	  	delay(50);  	 	  	
 	  }
 	  
@@ -509,36 +558,36 @@ void CoDroneClass::AutoConnect(byte mode)
 			
 	  	while(!pairing)
 	  	{  		
-	  		 Receive();  		 
-	  		   		 
-	  		 if ((discoverFlag == 3) && (connectFlag == 0))	//Address find
-	  		 {  		 	
-	  		 	DDRC = 0b01100110;
-	  		 	PORTC = 0x00;
-	  		 	  		 		  	
-	  		 	delay(50);
-	  		 	discoverFlag = 0;
-	  		 	Send_ConnectConnectedDrone();  	 	//  Connect Start 		 	
-	  		 }
-	  		 else if (discoverFlag == 4)	// Address not find : re-try
-	  		 {
-	  		 	Send_Discover(DiscoverStart);
-	  		  PreviousMillis = millis();
-	  		 }
-	  		 else
-	  		 {	  	
-		  		if (TimeCheck(400))  //time out & LED
-	    		{
-	      		if (displayLED++ == 4) 
-	      		{
-	      			displayLED = 0;	 
-	      			delay(50);     
-	      			Send_Discover(DiscoverStart);
-	      		}
-	      		PORTC = (0b1<<displayLED) | (0b10000000>>displayLED);	   
-	      		PreviousMillis = millis();   		     
-					}
-	  		}
+	  		
+  		 if ((discoverFlag == 3) && (connectFlag == 0))	//Address find
+  		 {  		 	
+  		 	DDRC = 0b01100110;
+  		 	PORTC = 0x00;
+  		 	  		 		  	
+  		 	delay(50);
+  		 	discoverFlag = 0;
+  		 	Send_ConnectConnectedDrone();  	 	//  Connect Start 		 	
+  		 }
+  		 else if (discoverFlag == 4)	// Address not find : re-try
+  		 {
+  		 	Send_Discover(DiscoverStart);
+  		  PreviousMillis = millis();
+  		 }
+  		 else
+  		 {	  	
+	  		if (TimeCheck(400))  //time out & LED
+    		{
+      		if (displayLED++ == 4) 
+      		{
+      			displayLED = 0;	 
+      			delay(50);     
+      			Send_Discover(DiscoverStart);
+      		}
+      		PORTC = (0b1<<displayLED) | (0b10000000>>displayLED);	   
+      		PreviousMillis = millis();   		     
+				}
+  		}
+	  		 Receive();  		
 	  	}
 	  	delay(50);
 	  } 
@@ -547,7 +596,6 @@ void CoDroneClass::AutoConnect(byte mode)
 
 void CoDroneClass::AutoConnect(byte mode, byte address[])
 {		
-	
 	// Connected check
 	LinkStateCheck();		
   if (receiveLinkState  == linkMode_Connected)
@@ -568,7 +616,7 @@ void CoDroneClass::AutoConnect(byte mode, byte address[])
 
 	  	while(!pairing)
 	  	{  		
-	  		 Receive();  		 
+	  		 
 	  		   		 
 	  		 if((discoverFlag == 3) && (connectFlag == 0))	//Address find
 	  		 {  		 	
@@ -596,7 +644,8 @@ void CoDroneClass::AutoConnect(byte mode, byte address[])
 	      		PORTC = (0b1<<displayLED) | (0b10000000>>displayLED);	   
 	      		PreviousMillis = millis();   		     
 					}
-	  		}	
+	  		}
+	  		 Receive();  			
 	  	}
 	  	delay(50);  	
 	  }
@@ -645,8 +694,6 @@ void CoDroneClass::Send_ConnectConnectedDrone()
 	  else if(AddrCheck2 == 6)	Send_Connect(2);    
 	}	
 }
-
-
 
 void CoDroneClass::Send_ConnectNearbyDrone()
 {
@@ -698,9 +745,11 @@ void CoDroneClass::Send_Processing(byte _data[], byte _length, byte _crc[])
    _packet[i+2] = _data[i];	   
   }
   //CRC
-  _packet[_length + 4] =_crc[0];
-  _packet[_length + 5] =_crc[1]; 
+  
+  _packet[_length + 4] =_crc[1];
+  _packet[_length + 5] =_crc[0]; 
     
+ //	Serial1.write(_packet, _length + 6);
  	Serial.write(_packet, _length + 6);
 }
 
@@ -714,17 +763,13 @@ void CoDroneClass::Send_Processing(byte _data[], byte _length, byte _crc[])
 
 /***************************************************************************/
 void CoDroneClass::Receive()
-{
-	
+{	
 	if (Serial.available() > 0)
   {
     int input = Serial.read();
-	
-	/*
-  if (Serial1.available() > 0)
-  {
-    int input = Serial1.read();
-*/
+    
+	//	Serial.write(input);	
+
     cmdBuff[cmdIndex++] = (char)input;
 
     if (cmdIndex >= MAX_PACKET_LENGTH)
@@ -762,7 +807,7 @@ void CoDroneClass::Receive()
           receiveDtype =  cmdBuff[2];
           dataBuff[cmdIndex - 3] = cmdBuff[cmdIndex - 1];
         }
-        else if (receiveDtype != 0xD0) //not message string
+        else if (receiveDtype != dType_StringMessage) //not message string
         {
           if (cmdIndex == 4)
           {
@@ -786,17 +831,42 @@ void CoDroneClass::Receive()
               ///////////////////////////////////////////////////////////
               if (receiveComplete == 1)
               {                       	
-              	if (receiveDtype  == dType_LinkState)		
+              	if (receiveDtype == dType_LinkState)		
                 {
                 	receiveLinkState = dataBuff[2];
+                	receiveLikMode = dataBuff[3];
                 }
                 	
-                else if (receiveDtype  == dType_LinkEvent)		
+                else if (receiveDtype == dType_LinkEvent)		
                 {
                 	receiveEventState = dataBuff[2];
                 }
+                          
+                /***********************************************/     
+               
+               
+                else if (receiveDtype == dType_State)		//dron state
+                {
+	                droneState[0] = dataBuff[2];
+	                droneState[1] = dataBuff[3];
+	                droneState[2] = dataBuff[4];
+	                droneState[3] = dataBuff[5];
+	                droneState[4] = dataBuff[6];
+	                droneState[5] = dataBuff[7];	
+	                droneState[6] = dataBuff[8];	             
+              	}
+                else if (receiveDtype == dType_Attitude)		//dron Attitude
+                { 
+                	droneAttitude[0] = dataBuff[2];
+	                droneAttitude[1] = dataBuff[3];
+	                droneAttitude[2] = dataBuff[4];
+	                droneAttitude[3] = dataBuff[5];
+	                droneAttitude[4] = dataBuff[6];
+	                droneAttitude[5] = dataBuff[7];	  
+                }         
+                /***********************************************/                  
                                 
-                else if (receiveDtype  == dType_LinkDiscoveredDevice)
+                else if (receiveDtype == dType_LinkDiscoveredDevice)
                 {
                   byte devIndex = dataBuff[2];
 
@@ -904,17 +974,17 @@ void CoDroneClass::LED(int command)
 {
   if (command == ON)
   {
-    digitalWrite(12, HIGH);	
+   // digitalWrite(12, HIGH);	
  //   digitalWrite(13, HIGH);    
  //   digitalWrite(16, HIGH);
-    digitalWrite(17, HIGH);
+   // digitalWrite(17, HIGH);
   }
   else if (command == OFF)
   {
-      digitalWrite(12, LOW);
+    //  digitalWrite(12, LOW);
    //   digitalWrite(13, LOW);      
    //   digitalWrite(16, LOW);
-      digitalWrite(17, LOW);
+   //   digitalWrite(17, LOW);
   }
 }
 
@@ -923,15 +993,15 @@ void CoDroneClass::Blink(int time, int count)
     for (int i = 0; i < count; i++)
     {
    //   digitalWrite(12, HIGH);
-      digitalWrite(13, HIGH);
-      digitalWrite(16, HIGH);
+   //   digitalWrite(13, HIGH);
+   //   digitalWrite(16, HIGH);
   //    digitalWrite(17, HIGH);    
         
       delay(time);      
 
    //   digitalWrite(12, LOW);
-      digitalWrite(13, LOW);      
-      digitalWrite(16, LOW);
+   //   digitalWrite(13, LOW);      
+   //   digitalWrite(16, LOW);
    //   digitalWrite(17, LOW);
       
       delay(time);
@@ -959,14 +1029,85 @@ void CoDroneClass::StartLED()
 
 void CoDroneClass::ConnectLED()
 {	
+	DDRC = 0b00100100;
 	PORTC = 0b00100100;	
 }
 
+
+/**********************************************************/
+
+int CoDroneClass::LowBatteryCheck(byte value)
+{
+	
+	int bat = -1;
+	timeOutRetry = 0;
+	CoDrone.Send_DroneState();
+	
+	PreviousMillis = millis();
+		  	
+	while(1)
+	{		
+		CoDrone.Receive();
+				
+	  if (CoDrone.droneState[0] != 0 )
+	  {	  		  
+	 		battery = droneState[5];
+	 		bat = droneState[5];
+		  if(bat < value)
+		  {
+					BeepWarning(5);
+			}
+			
+			droneState[0] = 0;
+		  droneState[1] = 0;
+		  droneState[2] = 0;
+		  droneState[3] = 0;
+		  droneState[4] = 0;
+		  droneState[5] = 0;
+		  droneState[6] = 0;
+		  
+		  break;
+	  }
+	  
+		else if (TimeCheck(1000))	//time out
+		{			
+			timeOutRetry ++;
+			if(timeOutRetry <3)
+			{
+				bat = -1;
+				droneState[0] = 0;
+			  droneState[1] = 0;
+			  droneState[2] = 0;
+			  droneState[3] = 0;
+			  droneState[4] = 0;
+			  droneState[5] = 0;
+			  droneState[6] = 0;
+			  break;	 
+			}
+			else
+			{
+				CoDrone.Send_DroneState();
+				delay(50);	
+				PreviousMillis = millis();				
+			}   
+		}		  
+	}
+	delay(50);
+	return bat;
+}
+
+/**********************************************************/
+
 void CoDroneClass::LinkStateCheck()
 {
+	receiveLinkState = 0;
+	
 	Send_LinkState();
+		
   delay(50);
-  while (receiveLinkState <= 0)  Receive();
+ 
+  while (receiveLinkState <= 0) 	 Receive();
+  
 }
 
 /**********************************************************/
@@ -1377,6 +1518,49 @@ int CoDroneClass::AnalogScaleChange(int analogValue)
     if ((ScaleChange > -1 * analogOffset) && (ScaleChange < analogOffset)) ScaleChange = 0;        
     return ScaleChange;
 }
+
+/*********************************************************/
+
+void CoDroneClass::BeepWarning(int count) 
+{
+	for (int i = 0; i < count; i++)
+	{
+		CoDrone.Buzz(2000, 4);
+		delay(400);
+	}
+}
+
+/*********************************************************/
+void CoDroneClass::Buzz(long frequency, int tempo) 
+{
+ 	DDRD |= 0b10000000;
+ 		
+	int length = 1000/tempo;  								 //TEMPO
+	long delayValue = 1000000/frequency/2; 		 // calculate the delay value between transitions
+	long numCycles = frequency * length/ 1000; // calculate the number of cycles for proper timing
+	
+	for (long i=0; i < numCycles; i++)
+	{ 		
+		PORTD |= 0b10000000;		
+		while(!TimeCheckBuzz(delayValue));		
+		PORTD &=~0b10000000;					
+		while(!TimeCheckBuzz(delayValue));
+	}
+}
+
+boolean CoDroneClass::TimeCheckBuzz(word interval) //micros seconds
+{
+  boolean time = false; 
+  unsigned long currentTimes = micros();
+  if(currentTimes - PreviousBuzz >= interval) 
+  {
+    PreviousBuzz = currentTimes;
+    time = true;
+  }
+  return time;
+}
+
+
 
 /*********************************************************/
 

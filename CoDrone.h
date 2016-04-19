@@ -44,12 +44,19 @@ typedef uint8_t u8;
 #define SEND_INTERVAL	CoDrone.SendInterval
 #define ANALOG_OFFSET	CoDrone.analogOffset
 
+#define BATTERY				CoDrone.battery
+
+
 /***********************************************************************/
 
-#define DiscoverStop  			cType_DiscoverStop
-#define DiscoverStart  			cType_DiscoverStart
+#define DiscoverStop  			cType_LinkDiscoverStop
+#define DiscoverStart  			cType_LinkDiscoverStart
 
 #define	PAIRING							CoDrone.pairing
+
+#define LinkModeMute 				LinkBroadcast_Mute
+#define LinkModeActive			LinkBroadcast_Active
+#define LinkModePassive 		LinkBroadcast_Passive
 
 #define	NeardbyDrone    		1
 #define	ConnectedDrone  		2
@@ -62,30 +69,29 @@ typedef uint8_t u8;
 
 //////////////////////////////////////////////////////////////////////////
 
-#define Flight 					dMode_Flight
-#define FlightNoGuard		dMode_FlightNoGuard,
-#define FlightFPV				dMode_FlightFPV
-#define Drive 				 	dMode_Drive
-#define DriveFPV				dMode_DriveFPV
-#define Test						dMode_Test
+#define Flight 						dMode_Flight
+#define FlightNoGuard			dMode_FlightNoGuard,
+#define FlightFPV					dMode_FlightFPV
+#define Drive 				 		dMode_Drive
+#define DriveFPV					dMode_DriveFPV
 
-#define Absolute 				cSet_Absolute
-#define Relative		 		cSet_Relative
+#define Absolute 					cSet_Absolute
+#define Relative		 			cSet_Relative
 
-#define TakeOff 				fEvent_TakeOff
-#define FlipFront				fEvent_FlipFront
-#define FlipRear				fEvent_FlipRear
-#define FlipLeft				fEvent_flipLeft
-#define FlipRight				fEvent_FlipRight
-#define Stop						fEvent_Stop
-#define Landing					fEvent_Landing
-#define TurnOver				fEvent_TurnOver
-#define Shot						fEvent_Shot
-#define UnderAttack			fEvent_UnderAttack
-#define Square					fEvent_Square
-#define CircleLeft			fEvent_CircleLeft
-#define CircleRight			fEvent_CircleRight
-#define Rotate180				fEvent_Rotate180
+#define TakeOff 					fEvent_TakeOff
+#define FlipFront					fEvent_FlipFront
+#define FlipRear					fEvent_FlipRear
+#define FlipLeft					fEvent_flipLeft
+#define FlipRight					fEvent_FlipRight
+#define Stop							fEvent_Stop
+#define Landing						fEvent_Landing
+#define TurnOver					fEvent_TurnOver
+#define Shot							fEvent_Shot
+#define UnderAttack				fEvent_UnderAttack
+#define Square						fEvent_Square
+#define CircleLeft				fEvent_CircleLeft
+#define CircleRight				fEvent_CircleRight
+#define Rotate180					fEvent_Rotate180
 
 #define RollIncrease			trim_RollIncrease
 #define RollDecrease			trim_RollDecrease
@@ -100,15 +106,23 @@ typedef uint8_t u8;
 
 enum ModeLink
 {
-	linkMode_None = 0,	 	 ///< 없음
-	linkMode_Boot,	 	 	 ///< 부팅 	 	
-	linkMode_Ready,	 		 ///< 대기(연결 전)
-	linkMode_Connecting,	 	 ///< 장치 연결 중
-	linkMode_Connected,	 	 ///< 장치 연결 완료
-	linkMode_Disconnecting,	 	 ///< 장치 연결 해제 중
-	linkMode_ReadyToReset,	 	 ///< 리셋 대기(1초 뒤에 장치 리셋)	
+	linkMode_None = 0,	 	 	///< 없음
+	linkMode_Boot,	 	 	 		///< 부팅 	 	
+	linkMode_Ready,	 		 		///< 대기(연결 전)
+	linkMode_Connecting,	 	///< 장치 연결 중
+	linkMode_Connected,	 	 	///< 장치 연결 완료
+	linkMode_Disconnecting,	///< 장치 연결 해제 중
+	linkMode_ReadyToReset,	///< 리셋 대기(1초 뒤에 장치 리셋)	
 	linkMode_EndOfType
+};
 
+enum ModeLinkBroadcast
+{
+	LinkBroadcast_None = 0, ///< 없음
+	LinkBroadcast_Mute, 		///< LINK 모듈 데이터 송신 중단 . 아두이노 펌웨어 다운로드
+	LinkBroadcast_Active, 	///< 페트론 연결 모드 . 모드 전환 메세지 전송
+	LinkBroadcast_Passive, 	///< 페트론 연결 모드 . 모드 전환 메세지 전송하지 않음
+	LinkBroadcast_EndOfType
 };
 
 
@@ -227,7 +241,7 @@ enum DataType
 	dType_StringMessage, ///< 문자열 메세지
 	dType_DiscoveredDevice, ///< 검색된 장치
 	*/
-	dType_LinkState = 0xC0,		///< 링크 모듈의 상태
+	dType_LinkState = 0xE0,		///< 링크 모듈의 상태
 	dType_LinkEvent,		///< 링크 모듈의 이벤트
 	dType_LinkEventAddress,		///< 링크 모듈의 이벤트 + 주소
 	dType_LinkRssi,			///< 링크와 연결된 장치의 RSSI값
@@ -263,6 +277,7 @@ enum CommandType
 	
 	//확장
 	//cType_Tester = 0xE0 ,
+	/*
 	cType_SystemReset  = 0xE0, ///< 시스템 재시작
 	cType_DiscoverStart, ///< 장치 검색 시작
 	cType_DiscoverStop, ///< 장치 검색 중단
@@ -270,6 +285,16 @@ enum CommandType
 	cType_Disconnect, ///< 연결 끊기
 	cType_RssiPollingStart, ///< 연결된 장치의 RSSI 값 수집 시작
 	cType_RssiPollingStop, ///< 연결된 장치의 RSSI 값 수집 중단	
+	*/
+	cType_LinkModeBroadcast = 0xE0, ///< LINK 송수신 모드 전환
+	cType_LinkSystemReset, ///< 시스템 재시작
+	cType_LinkDiscoverStart, ///< 장치 검색 시작
+	cType_LinkDiscoverStop, ///< 장치 검색 중단
+	cType_LinkConnect, ///< 연결
+	cType_LinkDisconnect, ///< 연결 해제
+	cType_LinkRssiPollingStart, ///< RSSI 수집 시작
+	cType_LinkRssiPollingStop, ///< RSSI 수집 중단
+
 	cType_EndOfType
 };
 
@@ -333,6 +358,19 @@ enum FlightEvent
 	fEvent_Rotate180,
 	fEvent_EndOfType
 };
+
+enum DriveEvent
+{
+	dEvent_None = 0,
+	dEvent_Ready, ///< 준비
+	dEvent_Start, ///< 출발
+	dEvent_Drive, ///< 주행
+	dEvent_Stop, ///< 강제 정지
+	dEvent_Accident, ///< 사고 (Ready로 자동전환)
+	dEvent_Error, ///< 오류
+	dEvent_EndOfType
+};
+
 
 /***********************************************************************/
 enum Request
@@ -446,7 +484,7 @@ public:
 	void Control(int interval);
 	
 	void Send_Processing(byte _data[], byte _length, byte _crc[]);
-		
+	void Send_LinkModeBroadcast(byte mode);
 	void Send_LinkState();
 	void Send_Discover(byte action);
 	void Send_Connect(byte index);
@@ -454,12 +492,19 @@ public:
 	void Send_RSSI_Polling(byte action);
 	
 	void Send_Ping();
+	void Send_DroneState();
 	
 	void Send_DroneMode(byte event);
 	void Send_Coordinate(byte mode);
 	void Send_Trim(byte event);
-	
+	void Send_DroneAttitude();
+		
+		
+		
+	void Send_ClearGyroBiasAndTrim();
+	void DroneModeChange(byte event);
 	void FlightEvent(byte event);
+	void DriveEvent(byte event);
 	void Send_ResetHeading();	
 	void Send_Command(int sendCommand, int sendOption);
 	
@@ -471,8 +516,7 @@ public:
 	void Send_ConnectAddressInputDrone(byte address[]);
 	void Send_ConnectConnectedDrone();
 	void Send_ConnectNearbyDrone();
-	
-	
+					
 	void LedColor(byte sendMode, byte sendColor, byte sendInterval);
 	void LedColor(byte sendMode, byte r, byte g, byte b, byte sendInterval);
 	void LedColor(byte sendMode, byte sendColor[], byte sendInterval);
@@ -483,15 +527,17 @@ public:
 					
 	void LinkReset();
 		
-	/////////////////////////////////
-		
+	/////////////////////////////////		
+	
 	void PrintDroneAddress();
+	int LowBatteryCheck(byte value);
 	void LinkStateCheck();
 	void ReceiveEventCheck();
 	void StartLED();
 	void ConnectLED();
 		
 	void DisplayAddress(byte count);
+	
 	/////////////////////////////////
 
 	byte cmdBuff[MAX_PACKET_LENGTH];
@@ -504,6 +550,7 @@ public:
 	int receiveLength;
 	int receiveEventState;
 	int receiveLinkState;
+	int receiveLikMode;
 	int receiveComplete;
 	int receiveCRC;
 
@@ -511,6 +558,9 @@ public:
 	int connectFlag;
 
 	byte displayLED = 0;
+		
+//*****************************************/
+	byte	battery = 0;
 		
 //*****************************************/
 	byte devCount = 0;
@@ -554,7 +604,19 @@ public:
 	int state;	
 	int analogOffset;
 	
+	
+	
+//*****************************************/
+	long	PreviousBuzz;
+	boolean TimeCheckBuzz(word interval); 
+	
+	void Buzz(long frequency, int tempo);
+	void BeepWarning(int count);
+	int droneState[7];
+	
+	int droneAttitude[6];
 
+	byte timeOutRetry = 0;
 	
 private:
 	byte packet[9];

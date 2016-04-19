@@ -7,17 +7,18 @@
 
 void setup()
 {
-  CoDrone.begin();                      // 드론 플러그의 기능 개시
   Serial.begin(115200);                 // 드론과 통신 개시(115200bps)
+
+  CoDrone.begin();                      // 드론 플러그의 기능 개시
 
   CoDrone.AutoConnect(NeardbyDrone);    // 가장 가까운 위치의 드론과 연결
 
-  if (PAIRING == true)                   //연결(페어링)이 성공한 경우에만 실행 
+  if (PAIRING == true)                   //연결(페어링)이 성공한 경우에만 실행
   {
     CoDrone.FlightEvent(TakeOff);        // 이륙
-    
+
     delay(2000);                          // 대기 시간
-    
+
     CoDrone.FlightEvent(Landing);        // 서서히 착륙
   }
 }

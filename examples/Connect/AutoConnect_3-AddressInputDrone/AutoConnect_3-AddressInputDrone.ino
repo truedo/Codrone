@@ -8,8 +8,8 @@
 
 void setup()
 {
-  CoDrone.begin();                      // 드론 플러그의 기능 개시
   Serial.begin(115200);                 // 드론과 통신 개시(115200bps)
+  CoDrone.begin();                      // 드론 플러그의 기능 개시
 
   // CoDrone.PrintDroneAddress();        // 최근에 연결한 드론의 어드레스 주소를 모니터로 출력합니다.
 

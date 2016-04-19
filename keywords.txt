@@ -13,23 +13,30 @@ CoDrone	KEYWORD1
 #######################################
 
 
-begin	KEYWORD2
-print	KEYWORD2
-write	KEYWORD2
+begin								KEYWORD2
+print								KEYWORD2
+write								KEYWORD2
 
 Control							KEYWORD2
 LedColor						KEYWORD2
 LedEvent						KEYWORD2
 FlightEvent					KEYWORD2
+DriveEvent					KEYWORD2
 Receive							KEYWORD2
 AutoConnect					KEYWORD2
 PrintDroneAddress		KEYWORD2	
+LowBatteryCheck			KEYWORD2	
+DroneModeChange			KEYWORD2	
 
 #######################################
 # Constants (LITERAL1)
 #######################################
 
-
+Flight						LITERAL1
+FlightNoGuard			LITERAL1
+FlightFPV					LITERAL1
+Drive							LITERAL1
+DriveFPV					LITERAL1
 
 ROLL							LITERAL1
 PITCH							LITERAL1
