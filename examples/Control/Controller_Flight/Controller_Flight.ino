@@ -7,9 +7,8 @@
 #include <CoDrone.h> // 코드론을 사용하기 위한 헤더파일 
 
 void setup()
-{
-  Serial.begin(115200);                  // 드론과 통신 개시(115200bps)
-  CoDrone.begin();                       // 드론 링크의 기능 개시
+{  
+  CoDrone.begin(115200);                // 드론 플러그의 통신 개시 (115200bps)
 
   CoDrone.AutoConnect(NeardbyDrone);     // 가장 가까운 위치의 드론과 연결
 
@@ -27,7 +26,6 @@ void loop()
     CoDrone.FlightEvent(Stop);      // 드론을 정지시킵니다.
     // CoDrone.FlightEvent(Landing);      // 드론을 정지시킵니다.
   }
-
 
   if (!bt1 && !bt4 && bt8)           // 밑면 센서 가장 끝 1번센서에 손을 대면 실행합니다.
   {

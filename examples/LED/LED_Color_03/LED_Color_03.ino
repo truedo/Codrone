@@ -18,9 +18,7 @@ byte color3[] = {0, 0, 0};                //color3 색상 배열 (R,G,B)
 
 void setup()
 {
-  Serial.begin(115200);                  // 드론과 통신 개시(115200bps)
-
-  CoDrone.begin();                       // 드론 플러그의 기능 개시
+  CoDrone.begin(115200);                // 드론 플러그의 통신 개시 (115200bps)
 
   CoDrone.AutoConnect(NeardbyDrone);     // 가장 가까운 위치의 드론과 연결
 }

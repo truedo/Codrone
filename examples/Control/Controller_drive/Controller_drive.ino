@@ -8,8 +8,7 @@
 
 void setup()
 {
-  Serial.begin(115200);                  // 드론과 통신 개시(115200bps)
-  CoDrone.begin();                       // 드론 링크의 기능 개시
+  CoDrone.begin(115200);                // 드론 플러그의 통신 개시 (115200bps)
 
   CoDrone.AutoConnect(NeardbyDrone);     // 가장 가까운 위치의 드론과 연결
 
@@ -24,10 +23,10 @@ void loop()
 
   if (PAIRING == true)                // 연결(페어링)이 성공한 경우에만 실행
   {
-    YAW = -1 * CoDrone.AnalogScaleChange(analogRead(A3));   // 아날로그 3번 핀의 값을 YAW 값으로 사용합니다.       - 좌우회전
-    THROTTLE  = CoDrone.AnalogScaleChange(analogRead(A4));  // 아날로그 4번 핀의 값을 THROTTLE 값으로 사용합니다.  - 승하강
-    ROLL = -1 * CoDrone.AnalogScaleChange(analogRead(A5));  // 아날로그 5번 핀의 값을 ROLL 값으로 사용합니다.      - 좌우이동
-    PITCH = CoDrone.AnalogScaleChange(analogRead(A6));      // 아날로그 6번 핀의 값을 PITCH 값으로 사용합니다.     - 전후진
+    
+    THROTTLE  = CoDrone.AnalogScaleChange(analogRead(A4));  // 아날로그 4번 핀의 값을 THROTTLE 값으로 사용합니다.  - 전후 이동
+    ROLL = -1 * CoDrone.AnalogScaleChange(analogRead(A5));  // 아날로그 5번 핀의 값을 ROLL 값으로 사용합니다.      - 좌우 이동
+    
     CoDrone.Control(SEND_INTERVAL);                         // 제어 신호를 보냅니다. 통신이 안정하게 가도록 시간을 두고 보냄(최소 50ms)
   }
 }
