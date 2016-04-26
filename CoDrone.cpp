@@ -170,6 +170,7 @@ void CoDroneClass::Send_RSSI_Polling(byte action)
 
 void CoDroneClass::DroneModeChange(byte event)
 {
+		sendCheckFlag = 1;
 	  Send_Command(cType_ModeDrone, event);
 	  delay(100);
 }
