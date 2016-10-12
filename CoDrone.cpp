@@ -74,18 +74,17 @@ boolean CoDroneClass::CRC16_Check(unsigned char data[], int len, unsigned char c
 
 void CoDroneClass::begin(long baud)
 {
-	DRONE_SERIAL.begin(baud);   // 드론과 통신 개시	(115200bps)
-		
-		
+	DRONE_SERIAL.begin(baud);   		// 드론과 통신 개시	(115200bps)
+				
 	#if defined(FIND_HWSERIAL1)
 		DEBUG_SERIAL.begin(baud);		// Serial Debug Begin	(115200bps)
-		debugMode = 1;							// DEBUG MODE 0 = OFF, 1 = ON
-		displayMode = 0;						// LED Display 0 = BOARD LED 0FF, 1 = BOARD LED ON	
+		debugMode = 1;					// DEBUG MODE 0 = OFF, 1 = ON
+		displayMode = 0;				// LED Display 0 = BOARD LED 0FF, 1 = BOARD LED ON	
 	#endif
 				
-	SendInterval = 50; 		// millis seconds			
+	SendInterval = 50; 					// millis seconds		
 	
-	analogOffset = 10;		// analog sensor offset
+	analogOffset = 10;					// analog sensor offset
 
 	LED_Start();
 
@@ -128,7 +127,7 @@ void CoDroneClass::LinkReset()
 
 void CoDroneClass::Send_Discover(byte action)
 {	
-	if(action == DiscoverStop)	  	Send_Command(cType_LinkDiscoverStop, 0);		//DiscoverStop
+	if(action == DiscoverStop)	  	Send_Command(cType_LinkDiscoverStop, 0);	//DiscoverStop
 	else if(action == DiscoverStart)	
 	{
 		Send_Command(cType_LinkDiscoverStart, 0);  	//DiscoverStart  
@@ -139,7 +138,7 @@ void CoDroneClass::Send_Discover(byte action)
 void CoDroneClass::Send_Connect(byte index) //index 0, 1, 2
 {
 	connectFlag = 1;
-		
+	
 	if(index == 0)
 	{				
 		for (int i = 0; i <= 5; i++)		devAddressBuf[i] = devAddress0[i];
@@ -152,7 +151,7 @@ void CoDroneClass::Send_Connect(byte index) //index 0, 1, 2
 	{
 		for (int i = 0; i <= 5; i++)		devAddressBuf[i] = devAddress2[i];
 	}	
-	
+		
   Send_Command(cType_LinkConnect, index);
 }
 void CoDroneClass::Send_Disconnect()
@@ -172,7 +171,7 @@ void CoDroneClass::DroneModeChange(byte event)
 {
 		sendCheckFlag = 1;
 	  Send_Command(cType_ModeDrone, event);
-	  delay(100);
+	  delay(300);
 }
 
 void CoDroneClass::Send_DroneMode(byte event)
@@ -183,34 +182,94 @@ void CoDroneClass::Send_DroneMode(byte event)
 
 void CoDroneClass::Send_Coordinate(byte mode)
 {
-	if(mode == cSet_Absolute)	  				Send_Command(cType_Coordinate, cSet_Absolute);
+	if(mode == cSet_Absolute)	  			Send_Command(cType_Coordinate, cSet_Absolute);
 	else if(mode == cSet_Relative) 			Send_Command(cType_Coordinate, cSet_Relative);
 }
 void CoDroneClass::Set_Trim(byte event)
 {
-	  Send_Command(cType_Trim, event);
+	sendCheckFlag = 1;
+	Send_Command(cType_Trim, event);
 }
 
 void CoDroneClass::Send_ClearGyroBiasAndTrim()
 {
-		sendCheckFlag = 1;
-	  Send_Command(cType_ClearGyroBiasAndTrim, 0);
+	sendCheckFlag = 1;
+	Send_Command(cType_ClearGyroBiasAndTrim, 0);
 }
 
 void CoDroneClass::FlightEvent(byte event)
 {
-		sendCheckFlag = 1;
-	  Send_Command(cType_FlightEvent, event);
+	sendCheckFlag = 1;
+	Send_Command(cType_FlightEvent, event);
 }
 
 void CoDroneClass::DriveEvent(byte event)
 {
-	  Send_Command(cType_DriveEvent, event);
+	Send_Command(cType_DriveEvent, event);
 }
 
 void CoDroneClass::Send_ResetHeading()
 {
-	  Send_Command(cType_ResetHeading, 0);
+	Send_Command(cType_ResetHeading, 0);
+}
+
+/***************************************************************************/
+//////////////////////////MOTOR///////////////////////////////////////////
+
+void CoDroneClass::Set_Motor()
+{
+	sendCheckFlag = 1;
+	
+	byte _packet[18];
+  byte _crc[2];
+  
+  byte _cType = dType_Motor;
+  byte _len   = 16;  
+  
+  /*
+  //header
+  _packet[0] = _cType;
+  _packet[1] = _len;
+           
+ //data 
+ //1
+  _packet[2] = 0xbe;
+  _packet[3] = 0x0e;  
+  
+  _packet[4] = 0;
+  _packet[5] = 0;
+    
+   //2
+  _packet[6] = 0xe1;
+  _packet[7] = 0x0a; 
+   
+  _packet[8] = 0;
+  _packet[9] = 0;
+  
+ 	//3
+  _packet[10] = 0xff;
+  _packet[11] = 0x0f;
+  
+  _packet[12] = 0;
+  _packet[13] = 0;
+  
+   //4
+  _packet[14] = 0x40;
+  _packet[15] = 0x0f;
+  
+  _packet[16] = 0;
+  _packet[17] = 0;
+  */
+  
+ unsigned short crcCal = CRC16_Make(_packet, _len+2);
+  _crc[0] = (crcCal >> 8) & 0xff;
+  _crc[1] = crcCal & 0xff;
+  
+  Send_Processing(_packet,_len,_crc); 
+        
+////////////////////////////////////////////
+	//Send_Check(_packet,_len,_crc);
+	
 }
 
 
@@ -219,15 +278,17 @@ void CoDroneClass::Send_ResetHeading()
 
 void CoDroneClass::Set_TrimAll(int _roll, int _pitch, int _yaw, int _throttle, int _wheel)
 {
+	sendCheckFlag = 1;
+	
 	byte _packet[12];
-  byte _crc[2];
+  	byte _crc[2];
   
-  byte _cType = dType_TrimAll;
-  byte _len   = 10;  
+  	byte _cType = dType_TrimAll;
+  	byte _len   = 10;  
   
   //header
-  _packet[0] = _cType;
-  _packet[1] = _len;
+ 	 _packet[0] = _cType;
+  	_packet[1] = _len;
     
 	byte L_roll 		= _roll & 0xff;
 	byte H_roll 		= (_roll >> 8) & 0xff;
@@ -243,50 +304,55 @@ void CoDroneClass::Set_TrimAll(int _roll, int _pitch, int _yaw, int _throttle, i
 	
 	byte L_wheel 		= _wheel & 0xff;
 	byte H_wheel 		= (_wheel >> 8) & 0xff;
- //data
-  _packet[2] = L_roll;
-  _packet[3] = H_roll;
-  
-  _packet[4] = L_pitch;
-  _packet[5] = H_pitch;
-  
-  _packet[6] = L_yaw;
-  _packet[7] = H_yaw;
-  
-  _packet[8] = L_throttle;
-  _packet[9] = H_throttle;
+	
+ 	//data
+	_packet[2] = L_roll;
+	_packet[3] = H_roll;
+	
+	_packet[4] = L_pitch;
+	_packet[5] = H_pitch;
+	
+	_packet[6] = L_yaw;
+	_packet[7] = H_yaw;
+	
+	_packet[8] = L_throttle;
+	_packet[9] = H_throttle;
+	
+	_packet[10] = L_wheel;
+	_packet[11] = H_wheel;
+	
+	unsigned short crcCal = CRC16_Make(_packet, _len+2);
+	_crc[0] = (crcCal >> 8) & 0xff;
+	_crc[1] = crcCal & 0xff;
+	
+	Send_Processing(_packet,_len,_crc);
+	
+	Send_Check(_packet,_len,_crc);
+	////////////////////////////////////////////
+	
+	///////////////////////////////////////////
 
-  _packet[8] = L_throttle;
-  _packet[9] = H_throttle;
-
-  _packet[10] = L_wheel;
-  _packet[11] = H_wheel;
- 
-
- unsigned short crcCal = CRC16_Make(_packet, _len+2);
-  _crc[0] = (crcCal >> 8) & 0xff;
-  _crc[1] = crcCal & 0xff;
-  
-  Send_Processing(_packet,_len,_crc); 
 }
 
 
 
 void CoDroneClass::Set_TrimFlight(int _roll, int _pitch, int _yaw, int _throttle)
 {
+	sendCheckFlag = 1;
+	
 	byte _packet[10];
-  byte _crc[2];
-  
-  byte _cType = dType_TrimFlight;
-  byte _len   = 8;  
-  
-  //header
-  _packet[0] = _cType;
-  _packet[1] = _len;
-    
+	byte _crc[2];
+	
+	byte _cType = dType_TrimFlight;
+	byte _len   = 8;  
+	
+	//header
+	_packet[0] = _cType;
+	_packet[1] = _len;
+	
 	byte L_roll 		= _roll & 0xff;
 	byte H_roll 		= (_roll >> 8) & 0xff;
-
+	
 	byte L_pitch 		= _pitch & 0xff;
 	byte H_pitch 		= (_pitch >> 8) & 0xff;
 	
@@ -295,64 +361,88 @@ void CoDroneClass::Set_TrimFlight(int _roll, int _pitch, int _yaw, int _throttle
 	
 	byte L_throttle = _throttle & 0xff;
 	byte H_throttle = (_throttle >> 8) & 0xff;
-
- //data
-  _packet[2] = L_roll;
-  _packet[3] = H_roll;
-  
-  _packet[4] = L_pitch;
-  _packet[5] = H_pitch;
-  
-  _packet[6] = L_yaw;
-  _packet[7] = H_yaw;
-  
-  _packet[8] = L_throttle;
-  _packet[9] = H_throttle;
-
- unsigned short crcCal = CRC16_Make(_packet, _len+2);
-  _crc[0] = (crcCal >> 8) & 0xff;
-  _crc[1] = crcCal & 0xff;
-  
-  Send_Processing(_packet,_len,_crc); 
-		
+	
+	//data
+	_packet[2] = L_roll;
+	_packet[3] = H_roll;
+	
+	_packet[4] = L_pitch;
+	_packet[5] = H_pitch;
+	
+	_packet[6] = L_yaw;
+	_packet[7] = H_yaw;
+	
+	_packet[8] = L_throttle;
+	_packet[9] = H_throttle;
+	
+	unsigned short crcCal = CRC16_Make(_packet, _len+2);
+	_crc[0] = (crcCal >> 8) & 0xff;
+	_crc[1] = crcCal & 0xff;
+	
+	Send_Processing(_packet,_len,_crc); 		
 }
-
-
-
 
 void CoDroneClass::Set_TrimDrive(int _wheel)
 {
+	sendCheckFlag = 1;
+	
 	byte _packet[4];
-  byte _crc[2];
-  
-  byte _cType = dType_TrimDrive;
-  byte _len   = 2;  
-  
-  //header
-  _packet[0] = _cType;
-  _packet[1] = _len;
-    
+	byte _crc[2];
+	
+	byte _cType = dType_TrimDrive;
+	byte _len   = 2;  
+	
+	//header
+	_packet[0] = _cType;
+	_packet[1] = _len;
+	
 	byte L_wheel 		= _wheel & 0xff;
 	byte H_wheel 		= (_wheel >> 8) & 0xff;
-
- //data
-  _packet[2] = L_wheel;
-  _packet[3] = H_wheel;
-  
- unsigned short crcCal = CRC16_Make(_packet, _len+2);
-  _crc[0] = (crcCal >> 8) & 0xff;
-  _crc[1] = crcCal & 0xff;
-  
-  Send_Processing(_packet,_len,_crc); 
+	
+	//data
+	_packet[2] = L_wheel;
+	_packet[3] = H_wheel;
+	
+	unsigned short crcCal = CRC16_Make(_packet, _len+2);
+	_crc[0] = (crcCal >> 8) & 0xff;
+	_crc[1] = crcCal & 0xff;
+	
+	Send_Processing(_packet,_len,_crc); 
 		
+	////////////////////////////////////////////
+	Send_Check(_packet,_len,_crc);
+	
+	///////////////////////////////////////////
 }
 
 void CoDroneClass::Set_TrimReset()
-{	
+{
 	Set_TrimAll(0,0,0,0,0);	
 }
 
-
+/***************************************************************************/
+void CoDroneClass::Send_Check(byte _data[], byte _length, byte _crc[])
+{
+	if(sendCheckFlag == 1)
+	{
+	  timeOutSendPreviousMillis = millis();
+		
+	 	while(sendCheckFlag != 3)
+	 	{
+	 		while(!TimeOutSendCheck(SEND_CHECK_TIME))
+			{
+				Receive();
+				if(sendCheckFlag == 3) break;
+			}
+			if(sendCheckFlag == 3) break;
+			if(sendCheckCount == 3) break;			//check count 
+			Send_Processing(_data,_length,_crc);
+			sendCheckCount++;
+	 	}
+	  sendCheckFlag = 0;
+	  sendCheckCount = 0;
+	}	
+}
 /***************************************************************************/
 ///////////////////////CONTROL///////////////////////////////////////////////
 /***************************************************************************/
@@ -367,29 +457,36 @@ void CoDroneClass::Control(int interval)
 
 void CoDroneClass::Control()
 {	
-  byte _packet[10];
-  byte _crc[2];
-  
-  byte _cType = dType_Control;
-  byte _len = 4;
-  
-  //header
-  _packet[0] = _cType;
-  _packet[1] = _len;
-
-  //data
-  _packet[2] = roll;
-  _packet[3] = pitch;
-  _packet[4] = yaw;
-  _packet[5] = throttle;
-
-  unsigned short crcCal = CRC16_Make(_packet, _len+2);
-  _crc[0] = (crcCal >> 8) & 0xff;
-  _crc[1] = crcCal & 0xff;
-  
-  Send_Processing(_packet,_len,_crc);  
-  
-  roll = 0;
+	byte _packet[10];
+	byte _crc[2];
+	
+	byte _cType = dType_Control;
+	byte _len = 4;
+	
+	//header
+	_packet[0] = _cType;
+	_packet[1] = _len;
+	
+	//data
+	_packet[2] = roll;
+	_packet[3] = pitch;
+	_packet[4] = yaw;
+	_packet[5] = throttle;
+	//
+	
+	prevControl[0] = roll;
+	prevControl[1] = pitch;
+	prevControl[2] = yaw;
+	prevControl[3] = throttle;
+		
+		
+	unsigned short crcCal = CRC16_Make(_packet, _len+2);
+	_crc[0] = (crcCal >> 8) & 0xff;
+	_crc[1] = crcCal & 0xff;
+	
+	Send_Processing(_packet,_len,_crc);  
+	
+	roll = 0;
 	pitch = 0;
 	yaw = 0;
 	throttle = 0;
@@ -397,234 +494,390 @@ void CoDroneClass::Control()
 	////////////////////////////////////////////
 	sendCheckFlag = 0;
 	////////////////////////////////////////////
-	
-	if(sendCheckFlag == 1)
-	{
-	  timeOutSendPreviousMillis = millis();
 		
-	 	while(sendCheckFlag != 3)
-	 	{
-	 		while(!TimeOutSendCheck(3))
-			{
-				Receive();
-				if(sendCheckFlag == 3) break;
-			}
-			if(sendCheckFlag == 3) break;
-						
-			Send_Processing(_packet,_len,_crc);
-	 	}
-	  sendCheckFlag = 0;
-	}
-///////////////////////////////////////////	
+	Send_Check(_packet,_len,_crc);
 }
 
 ////////////////////////////////////////////////////////
 
 void CoDroneClass::Send_Command(int sendCommand, int sendOption)
 {	
-  byte _packet[9];
-  byte _crc[2];
-  
-  byte _cType = dType_Command;
-  byte _len   = 0x02;  
-  
-  //header
-  _packet[0] = _cType;
-  _packet[1] = _len;
+	byte _packet[9];
+	byte _crc[2];
+	
+	byte _cType = dType_Command;
+	byte _len   = 0x02;  
+	
+	//header
+	_packet[0] = _cType;
+	_packet[1] = _len;
+	
+	//data
+	_packet[2] = sendCommand;
+	_packet[3] = sendOption;
+	
+	unsigned short crcCal = CRC16_Make(_packet, _len+2);
+	_crc[0] = (crcCal >> 8) & 0xff;
+	_crc[1] = crcCal & 0xff;
+	
+	Send_Processing(_packet,_len,_crc);
+	    
+	////////////////////////////////////////////
+	
+	Send_Check(_packet,_len,_crc);
+}
 
- //data
-  _packet[2] = sendCommand;
-  _packet[3] = sendOption;
-  
- unsigned short crcCal = CRC16_Make(_packet, _len+2);
-  _crc[0] = (crcCal >> 8) & 0xff;
-  _crc[1] = crcCal & 0xff;
-  
-  Send_Processing(_packet,_len,_crc);
-        
 ////////////////////////////////////////////
 
-	if(sendCheckFlag == 1)
-	{
-	  timeOutSendPreviousMillis = millis();
-		
-	 	while(sendCheckFlag != 3)
-	 	{
-	 		while(!TimeOutSendCheck(3))
-			{
-				Receive();
-				if(sendCheckFlag == 3) break;
-			}
-			if(sendCheckFlag == 3) break;
+void CoDroneClass::BattleBegin(byte teamSelect)
+{
+	team = teamSelect;
+	
+	if(team == TEAM_RED)
+	{		
+		weapon = RED_MISSILE;
 			
-			Send_Processing(_packet,_len,_crc);
-	 	}
-	  sendCheckFlag = 0;
+		CoDrone.LedColor(ArmHold,  Red, 7);
+		delay(300);
+		CoDrone.LedColor(EyeDimming, Red, 7);	  		    
+	}	
+	
+	else if	(team == TEAM_BLUE)
+	{		
+		weapon = BLUE_MISSILE;
+		
+		CoDrone.LedColor(ArmHold,  Blue, 7);
+		delay(300);
+		CoDrone.LedColor(EyeDimming, Blue, 7);	  
+	}	
+	
+	else if	(team == TEAM_GREEN)
+	{			
+		weapon = GREEN_MISSILE;
+		
+		CoDrone.LedColor(ArmHold,  Green, 7);
+		delay(300);
+		CoDrone.LedColor(EyeDimming, Green, 7);
 	}
 	
-///////////////////////////////////////////
-  
+	else if	(team == TEAM_YELLOW)
+	{		
+		weapon = YELLOW_MISSILE;
+		
+		CoDrone.LedColor(ArmHold,  Yellow, 7);
+		delay(300);
+		CoDrone.LedColor(EyeDimming, Yellow, 7);
+	}
+	else if (team == FREE_PLAY)
+	{		
+		CoDrone.LedColor(ArmHold,  White, 7);
+		delay(300);
+		CoDrone.LedColor(EyeDimming, White, 7);
+				
+		weapon = FREE_MISSILE;				
+	}
+	
+	delay (300);
 }
-/////////////////////////////////////////////////////
+
+
+void CoDroneClass::BattleReceive()
+{
+	Receive();
+	
+	if(irMassageReceive > 0)
+	{		
+		if(team == TEAM_RED)
+		{
+			if(irMassageReceive == BLUE_MISSILE || irMassageReceive == GREEN_MISSILE || irMassageReceive == YELLOW_MISSILE || irMassageReceive == FREE_MISSILE)
+			{
+				BattleDamageProcess();		
+			}			
+		}				
+			
+		else if(team == TEAM_BLUE)
+		{
+			if(irMassageReceive == RED_MISSILE || irMassageReceive == GREEN_MISSILE || irMassageReceive == YELLOW_MISSILE || irMassageReceive == FREE_MISSILE)
+			{				
+				BattleDamageProcess();
+			}			
+		}					
+		
+		else if(team == TEAM_GREEN)
+		{
+			if(irMassageReceive == BLUE_MISSILE || irMassageReceive == RED_MISSILE || irMassageReceive == YELLOW_MISSILE || irMassageReceive == FREE_MISSILE)
+			{
+				BattleDamageProcess();				
+			}			
+		}		
+						
+		else if(team == TEAM_YELLOW)
+		{
+			if(irMassageReceive == BLUE_MISSILE || irMassageReceive == GREEN_MISSILE || irMassageReceive == RED_MISSILE || irMassageReceive == FREE_MISSILE)
+			{				
+				BattleDamageProcess();
+			}			
+		}		
+			
+		else if(team == FREE_PLAY)
+		{
+			if(irMassageReceive == RED_MISSILE || irMassageReceive == BLUE_MISSILE || irMassageReceive == GREEN_MISSILE || irMassageReceive == YELLOW_MISSILE || irMassageReceive == FREE_PLAY)
+			{				
+				BattleDamageProcess();
+			}			
+		}		
+		
+		irMassageReceive = 0;
+	}	
+}
+
+void CoDroneClass::BattleDamageProcess()
+{
+	if(displayMode == 1)
+	{		
+		energy--;
+		
+		if(energy > 0)
+		{
+		DDRC = 0xff;					
+		PORTC = (0xff >> (MAX_ENERGY - energy)) << ((MAX_ENERGY - energy) / 2);
+		 
+		CoDrone.Buzz(4000, 8);			
+	}
+	
+	else
+	{			
+		delay(300);
+		
+		CoDrone.LedColor(ArmNone, Black, 7);
+		DDRC = 0xff;			
+		PORTC = 0x00;
+		CoDrone.Buzz(3000, 4);
+		delay(100);
+		CoDrone.Buzz(2000, 4);
+		delay(100);
+		CoDrone.Buzz(3000, 4);
+		delay(100);
+		CoDrone.Buzz(2000, 4);
+		delay(100);
+		CoDrone.Buzz(3000, 4);
+		delay(100);
+		CoDrone.Buzz(2000, 4);
+		delay(100);
+		CoDrone.Buzz(3000, 4);
+		delay(100);
+		CoDrone.Buzz(2000, 4);		  		  
+	}
+	
+	delay(100);
+	DDRC = 0b01100110;
+	PORTC = 0b00100100;
+	}
+}
+
+
+
+void CoDroneClass::BattleShooting()
+{
+	sendCheckFlag = 1;
+		
+	byte _packet[12];		 
+	byte _crc[2];
+	
+	byte _cType = dType_LedEventCommandIr;
+	byte _len   = 10;
+	
+	//header
+	_packet[0] = _cType;
+	_packet[1] = _len;
+	
+	//data
+	//led event base
+	_packet[2] = ArmDimming;
+	_packet[3] = Magenta;
+	_packet[4] = 7;
+	_packet[5] = 2;
+	
+	//command base
+	_packet[6] = cType_FlightEvent;
+	_packet[7] = fEvent_Shot;
+	
+	//irData u32 - 4byte
+	unsigned long data = weapon;
+	_packet[8] = data & 0xff;
+	_packet[9] = (data >> 8) & 0xff;
+	_packet[10] 	=	(data >> 16) & 0xff;
+	_packet[11] 	= (data >> 24) & 0xff;
+	
+	unsigned short crcCal = CRC16_Make(_packet, _len+2);
+	_crc[0] = (crcCal >> 8) & 0xff;
+	_crc[1] = crcCal & 0xff;
+	
+	Send_Processing(_packet,_len,_crc);  
+	
+	Send_Check(_packet,_len,_crc);
+}
+
+
 
 void CoDroneClass::LedColor(byte sendMode, byte sendColor, byte sendInterval)
 {	
-
-  byte _packet[9];
-  byte _crc[2];
-  
-  byte _cType = dType_LedMode;
-  byte _len   = 0x03;  
-  
-  //header
-  _packet[0] = _cType;
-  _packet[1] = _len;
-
- //data
-  _packet[2] = sendMode;
-  _packet[3] = sendColor;
-  _packet[4] = sendInterval;
-  
- unsigned short crcCal = CRC16_Make(_packet, _len+2);
-  _crc[0] = (crcCal >> 8) & 0xff;
-  _crc[1] = crcCal & 0xff;
-  
-  Send_Processing(_packet,_len,_crc);     
+	
+	byte _packet[9];
+	byte _crc[2];
+	
+	byte _cType = dType_LedMode;
+	byte _len   = 0x03;  
+	
+	//header
+	_packet[0] = _cType;
+	_packet[1] = _len;
+	
+	//data
+	_packet[2] = sendMode;
+	_packet[3] = sendColor;
+	_packet[4] = sendInterval;
+	
+	unsigned short crcCal = CRC16_Make(_packet, _len+2);
+	_crc[0] = (crcCal >> 8) & 0xff;
+	_crc[1] = crcCal & 0xff;
+	
+	Send_Processing(_packet,_len,_crc);     
 }
 
 
 void CoDroneClass::LedColor(byte sendMode, byte r, byte g, byte b, byte sendInterval)
 {	
-  byte _packet[9];
-  byte _crc[2];
-  
-  byte _cType = dType_LedModeColor;
-  byte _len   = 0x05;  
-  
-  //header
-  _packet[0] = _cType;
-  _packet[1] = _len;
-
- //data
-  _packet[2] = sendMode;
-  _packet[3] = r;
-  _packet[4] = g;  
-  _packet[5] = b;  
-  _packet[6] = sendInterval;
-  
- unsigned short crcCal = CRC16_Make(_packet, _len+2);
-  _crc[0] = (crcCal >> 8) & 0xff;
-  _crc[1] = crcCal & 0xff;
-  
-  Send_Processing(_packet,_len,_crc);     
+	byte _packet[9];
+	byte _crc[2];
+	
+	byte _cType = dType_LedModeColor;
+	byte _len   = 0x05;  
+	
+	//header
+	_packet[0] = _cType;
+	_packet[1] = _len;
+	
+	//data
+	_packet[2] = sendMode;
+	_packet[3] = r;
+	_packet[4] = g;  
+	_packet[5] = b;  
+	_packet[6] = sendInterval;
+	
+	unsigned short crcCal = CRC16_Make(_packet, _len+2);
+	_crc[0] = (crcCal >> 8) & 0xff;
+	_crc[1] = crcCal & 0xff;
+	
+	Send_Processing(_packet,_len,_crc);     
 }
 
 void CoDroneClass::LedColor(byte sendMode, byte sendColor[], byte sendInterval)
 {	
-  byte _packet[9];
-  byte _crc[2];
-  
-  byte _cType = dType_LedModeColor;
-  byte _len   = 0x05;  
-  
-  //header
-  _packet[0] = _cType;
-  _packet[1] = _len;
-
- //data
-  _packet[2] = sendMode;
-  _packet[3] = sendColor[0];
-  _packet[4] = sendColor[1];  
-  _packet[5] = sendColor[2];  
-  _packet[6] = sendInterval;
-  
- unsigned short crcCal = CRC16_Make(_packet, _len+2);
-  _crc[0] = (crcCal >> 8) & 0xff;
-  _crc[1] = crcCal & 0xff;
-  
-  Send_Processing(_packet,_len,_crc);     
+	byte _packet[9];
+	byte _crc[2];
+	
+	byte _cType = dType_LedModeColor;
+	byte _len   = 0x05;  
+	
+	//header
+	_packet[0] = _cType;
+	_packet[1] = _len;
+	
+	//data
+	_packet[2] = sendMode;
+	_packet[3] = sendColor[0];
+	_packet[4] = sendColor[1];  
+	_packet[5] = sendColor[2];  
+	_packet[6] = sendInterval;
+	
+	unsigned short crcCal = CRC16_Make(_packet, _len+2);
+	_crc[0] = (crcCal >> 8) & 0xff;
+	_crc[1] = crcCal & 0xff;
+	
+	Send_Processing(_packet,_len,_crc);     
 }
 
 
 void CoDroneClass::LedEvent(byte sendMode, byte sendColor, byte sendInterval, byte sendRepeat)
 {	
-  byte _packet[9];
-  byte _crc[2];
-  
-  byte _cType = dType_LedEvent;
-  byte _len   = 0x04;  
-  
-  //header
-  _packet[0] = _cType;
-  _packet[1] = _len;
-
- //data
-  _packet[2] = sendMode;
-  _packet[3] = sendColor;
-  _packet[4] = sendInterval;
-  _packet[5] = sendRepeat;
-  
- unsigned short crcCal = CRC16_Make(_packet, _len+2);
-  _crc[0] = (crcCal >> 8) & 0xff;
-  _crc[1] = crcCal & 0xff;
-  
-  Send_Processing(_packet,_len,_crc);     
+	byte _packet[9];
+	byte _crc[2];
+	
+	byte _cType = dType_LedEvent;
+	byte _len   = 0x04;  
+	
+	//header
+	_packet[0] = _cType;
+	_packet[1] = _len;
+	
+	//data
+	_packet[2] = sendMode;
+	_packet[3] = sendColor;
+	_packet[4] = sendInterval;
+	_packet[5] = sendRepeat;
+	
+	unsigned short crcCal = CRC16_Make(_packet, _len+2);
+	_crc[0] = (crcCal >> 8) & 0xff;
+	_crc[1] = crcCal & 0xff;
+	
+	Send_Processing(_packet,_len,_crc);     
 }
 
 void CoDroneClass::LedEvent(byte sendMode, byte sendColor[], byte sendInterval, byte sendRepeat)
 {	
-  byte _packet[9];
-  byte _crc[2];
-  
-  byte _cType = dType_LedEventColor;
-  byte _len   = 0x06;  
-  
-  //header
-  _packet[0] = _cType;
-  _packet[1] = _len;
-
- //data
-  _packet[2] = sendMode;
-  _packet[3] = sendColor[0];
-  _packet[4] = sendColor[1];  
-  _packet[5] = sendColor[2];  
-  _packet[6] = sendInterval;
-  _packet[7] = sendRepeat;
-  
- unsigned short crcCal = CRC16_Make(_packet, _len+2);
-  _crc[0] = (crcCal >> 8) & 0xff;
-  _crc[1] = crcCal & 0xff;
-  
-  Send_Processing(_packet,_len,_crc);     
+	byte _packet[9];
+	byte _crc[2];
+	
+	byte _cType = dType_LedEventColor;
+	byte _len   = 0x06;  
+	
+	//header
+	_packet[0] = _cType;
+	_packet[1] = _len;
+	
+	//data
+	_packet[2] = sendMode;
+	_packet[3] = sendColor[0];
+	_packet[4] = sendColor[1];  
+	_packet[5] = sendColor[2];  
+	_packet[6] = sendInterval;
+	_packet[7] = sendRepeat;
+	
+	unsigned short crcCal = CRC16_Make(_packet, _len+2);
+	_crc[0] = (crcCal >> 8) & 0xff;
+	_crc[1] = crcCal & 0xff;
+	
+	Send_Processing(_packet,_len,_crc);     
 }
 
 
 void CoDroneClass::LedEvent(byte sendMode, byte r, byte g, byte b, byte sendInterval, byte sendRepeat)
 {	
-  byte _packet[9];
-  byte _crc[2];
-  
-  byte _cType = dType_LedEventColor;
-  byte _len   = 0x06;  
-  
-  //header
-  _packet[0] = _cType;
-  _packet[1] = _len;
-
- //data
-  _packet[2] = sendMode;
-  _packet[3] = r;
-  _packet[4] = g;  
-  _packet[5] = b; 
-  _packet[6] = sendInterval;
-  _packet[7] = sendRepeat;
-
-  
- unsigned short crcCal = CRC16_Make(_packet, _len+2);
-  _crc[0] = (crcCal >> 8) & 0xff;
-  _crc[1] = crcCal & 0xff;
-  
-  Send_Processing(_packet,_len,_crc);     
+	byte _packet[9];
+	byte _crc[2];
+	
+	byte _cType = dType_LedEventColor;
+	byte _len   = 0x06;  
+	
+	//header
+	_packet[0] = _cType;
+	_packet[1] = _len;
+	
+	//data
+	_packet[2] = sendMode;
+	_packet[3] = r;
+	_packet[4] = g;  
+	_packet[5] = b; 
+	_packet[6] = sendInterval;
+	_packet[7] = sendRepeat;
+	
+	
+	unsigned short crcCal = CRC16_Make(_packet, _len+2);
+	_crc[0] = (crcCal >> 8) & 0xff;
+	_crc[1] = crcCal & 0xff;
+	
+	Send_Processing(_packet,_len,_crc);     
 }
 
 
@@ -645,6 +898,7 @@ void CoDroneClass::Request_DroneGyroBias()
 }
 void CoDroneClass::Request_TrimAll()
 {
+	sendCheckFlag = 1;
 	Send_Command(cType_Request, Req_TrimAll);    
 }
 void CoDroneClass::Request_TrimFlight()
@@ -685,57 +939,52 @@ void CoDroneClass::Request_Temperature()
 }
 
 void CoDroneClass::Send_Ping()
-{
-   
-  byte _packet[10];
-  byte _crc[2];
-  
-  byte _cType = dType_Ping;
-  byte _len = 0;
-  
-  //header
-  _packet[0] = _cType;
-  _packet[1] = _len;
-
-  unsigned short crcCal = CRC16_Make(_packet, _len+2);
-  _crc[0] = (crcCal >> 8) & 0xff;
-  _crc[1] = crcCal & 0xff;
-  
-  Send_Processing(_packet,_len,_crc);  
-    
+{   
+	byte _packet[10];
+	byte _crc[2];
+	
+	byte _cType = dType_Ping;
+	byte _len = 0;
+	
+	//header
+	_packet[0] = _cType;
+	_packet[1] = _len;
+	
+	unsigned short crcCal = CRC16_Make(_packet, _len+2);
+	_crc[0] = (crcCal >> 8) & 0xff;
+	_crc[1] = crcCal & 0xff;
+	
+	Send_Processing(_packet,_len,_crc);      
 }
+
 /////////////////////////////////////////////////////////////
-
-
-
 
 void CoDroneClass::AutoConnect(byte mode)
 {	
 	// Connected check
 	LinkStateCheck();		
-  if (linkState  == linkMode_Connected)
-  {
-    pairing = true;
-    LED_Connect();    
-  }
+	if (linkState  == linkMode_Connected)
+	{
+		pairing = true;
+		LED_Connect();    
+	}
+  
   // AutoConnect start
 	else     
 	{				
-	  if (mode == NeardbyDrone)	
+	  if (mode == NearbyDrone)	
 	  {
 	  	Send_Discover(DiscoverStart);  
 	  	PreviousMillis = millis();
 	  	
-			LED_DDRC(0xff);
+		LED_DDRC(0xff);
 			
 	  	while(!pairing)
-	  	{  		
-	  		
+	  	{  			  		
 	  		 if((discoverFlag == 3) && (connectFlag == 0)) //Address find
-	  		 {	  		
-	  		 
-	  		  LED_Standard();
-	  		 		  		 	  		 		  		 	
+	  		 {	  		  		 
+	  		  	LED_Standard();	  
+	  		  			 		  		 	  		 		  		 	
 	  		 	delay(50);
 	  		 	discoverFlag = 0;
 	  		 	Send_ConnectNearbyDrone();  	  		 				//  Connect Start
@@ -751,16 +1000,16 @@ void CoDroneClass::AutoConnect(byte mode)
 	  		 {	  	
 		  		if (TimeCheck(400))		//time out & LED
 	    		{
-	      		if (displayLED++ == 4) 
-	      		{
-	      			displayLED = 0;	 
-	      			delay(50);     
-	      			Send_Discover(DiscoverStart);
-	      		}
-	      		LED_Move_Radar(displayLED);
-	      	
-	      		PreviousMillis = millis();   		     
-					}
+		      		if (displayLED++ == 4) 
+		      		{
+		      			displayLED = 0;	 
+		      			delay(50);     
+		      			Send_Discover(DiscoverStart);
+		      		}
+		      		
+			      	LED_Move_Radar(displayLED);			      	
+			      	PreviousMillis = millis();   		     
+				}
 	  		}	  		 
 	 
 		  Receive();  
@@ -773,14 +1022,13 @@ void CoDroneClass::AutoConnect(byte mode)
 	  	Send_Discover(DiscoverStart);  
 	  	PreviousMillis = millis();
 	  	
-			LED_DDRC(0xff);
+		LED_DDRC(0xff);
 			
 	  	while(!pairing)
 	  	{  		
 	  		
   		 if ((discoverFlag == 3) && (connectFlag == 0))	//Address find
-  		 {  	
-  		 	
+  		 {  	  		 	
   		 	LED_Standard();
   		 	  		 		  	
   		 	delay(50);
@@ -790,25 +1038,25 @@ void CoDroneClass::AutoConnect(byte mode)
   		 else if (discoverFlag == 4)	// Address not find : re-try
   		 {
   		 	Send_Discover(DiscoverStart);
-  		  PreviousMillis = millis();
+  		  	PreviousMillis = millis();
   		 }
   		 else
   		 {	  	
 	  		if (TimeCheck(400))  //time out & LED
     		{
-      		if (displayLED++ == 4) 
-      		{
-      			displayLED = 0;	 
-      			delay(50);     
-      			Send_Discover(DiscoverStart);
-      		}
-      		
-      		LED_Move_Radar(displayLED);
-     
-      		PreviousMillis = millis();   		     
-				}
+	      		if (displayLED++ == 4) 
+	      		{
+	      			displayLED = 0;	 
+	      			delay(50);     
+	      			Send_Discover(DiscoverStart);
+	      		}      		
+	      		LED_Move_Radar(displayLED);
+	     
+	      		PreviousMillis = millis();   		     
+			}
   		}
-	  		 Receive();  		
+  		
+		Receive();  		
 	  	}
 	  	delay(50);
 	  } 
@@ -819,11 +1067,11 @@ void CoDroneClass::AutoConnect(byte mode, byte address[])
 {		
 	// Connected check
 	LinkStateCheck();		
-  if (linkState  == linkMode_Connected)
-  {
-    pairing = true;
-    LED_Connect();
-  }
+	if (linkState  == linkMode_Connected)
+	{
+		pairing = true;
+		LED_Connect();
+	}
     
   // AutoConnect start
 	else     
@@ -836,11 +1084,9 @@ void CoDroneClass::AutoConnect(byte mode, byte address[])
 	  	LED_DDRC(0xff);
 
 	  	while(!pairing)
-	  	{  			  		 
-	  		   		 
+	  	{  			  		 	  		   		 
 	  		 if((discoverFlag == 3) && (connectFlag == 0))	//Address find
-	  		 {  	
-	  		 	
+	  		 {  		  		 	
 	  		 	LED_Standard();
 	  		 	
 	  		 	delay(50);
@@ -865,7 +1111,7 @@ void CoDroneClass::AutoConnect(byte mode, byte address[])
 	      		LED_Move_Radar(displayLED);
 	      
 	      		PreviousMillis = millis();   		     
-					}
+				}
 	  		}
 	  		 Receive();  			
 	  	}
@@ -924,21 +1170,20 @@ void CoDroneClass::Send_ConnectNearbyDrone()
     if (devRSSI0 > devRSSI1)
     {
       if (devRSSI0 > devRSSI2)	Send_Connect(0);     
-      else			Send_Connect(2);
+      else						Send_Connect(2);
     }
     else
     {
-      if (devRSSI1 > devRSSI2)	 Send_Connect(1);
-      else	 		Send_Connect(2);
+      if (devRSSI1 > devRSSI2)	Send_Connect(1);
+      else	 					Send_Connect(2);
     }
   }
 }
 
 
-
 void CoDroneClass::Send_Processing(byte _data[], byte _length, byte _crc[])
 {		
-  byte _packet[20];
+  byte _packet[30];
   
   //START CODE  
   _packet[0] = START1;
@@ -949,15 +1194,12 @@ void CoDroneClass::Send_Processing(byte _data[], byte _length, byte _crc[])
   {
    _packet[i+2] = _data[i];	   
   }
-  //CRC
-  
+  //CRC  
   _packet[_length + 4] =_crc[1];
   _packet[_length + 5] =_crc[0]; 
     
  	DRONE_SERIAL.write(_packet, _length + 6);
- 	
- 	
- 	 
+ 	 	 
   #if defined(FIND_HWSERIAL1)
 	if(debugMode == 1)
 	{
@@ -970,24 +1212,25 @@ void CoDroneClass::Send_Processing(byte _data[], byte _length, byte _crc[])
 	  }
 	  DEBUG_SERIAL.println("");	
 	}	
-  #endif
- 	
- 	
+  #endif 	
 }
 
 /***************************************************************************/
 
+
 void CoDroneClass::Receive()
 {	
 	if (DRONE_SERIAL.available() > 0)
-  {
+  	{
     int input = DRONE_SERIAL.read();
     
     #if defined(FIND_HWSERIAL1)
-	  if(debugMode == 1)
-	  {
-	 //   DEBUG_SERIAL.print(input,HEX);	
-	  }	
+	if(debugMode == 1)
+	{
+	//
+	// DEBUG_SERIAL.print(input,HEX);	
+	//
+	}	
     #endif
     
     cmdBuff[cmdIndex++] = (char)input;
@@ -1025,30 +1268,32 @@ void CoDroneClass::Receive()
         if (cmdIndex == 3)
         {
           receiveDtype =  cmdBuff[2];
-          dataBuff[cmdIndex - 3] = cmdBuff[cmdIndex - 1];
         }
         else if (receiveDtype != dType_StringMessage) //not message string
         {
           if (cmdIndex == 4)
           {
             receiveLength = cmdBuff[3];
-            dataBuff[cmdIndex - 3] = cmdBuff[cmdIndex - 1];
           }
           else if (cmdIndex > 4)
-          {
-            if (receiveLength + 5 > cmdIndex)	 	dataBuff[cmdIndex - 3] = cmdBuff[cmdIndex - 1];     
-                   
-            else if (receiveLength + 6 > cmdIndex)	crcBuff[0]  = cmdBuff[cmdIndex - 1];
-            
-            else if (receiveLength + 6 <= cmdIndex)
-            {
+          {        
+            if (receiveLength + 6 <= cmdIndex)
+            {            	
+            	byte crcBuff[2];
+            	crcBuff[0]  = cmdBuff[cmdIndex - 2];
               crcBuff[1]  = cmdBuff[cmdIndex - 1];
+
+			byte dataBuff[30];
+
+			for(int i = 0; i < receiveLength + 5 ; i++)	dataBuff[i - 3] = cmdBuff[i - 1];   
 
               if (CRC16_Check(dataBuff, receiveLength, crcBuff))  receiveComplete = 1;
               else  receiveComplete = -1;
 
+              byte receiveCompleteData[16];
+
               if (receiveComplete == 1)
-              {                       	
+              {                       	              	
               	if (receiveDtype == dType_LinkState)		
                 {
                 	receiveLinkState = dataBuff[2];
@@ -1060,158 +1305,105 @@ void CoDroneClass::Receive()
                 }
                           
                 /***********************************************/     
-                           
-                else if (receiveDtype == dType_State)		//dron state
-                {           	
-	                droneState[0] = dataBuff[2];
-	                droneState[1] = dataBuff[3];
-	                droneState[2] = dataBuff[4];
-	                droneState[3] = dataBuff[5];
-	                droneState[4] = dataBuff[6];
-	                droneState[5] = dataBuff[7];	
-	                droneState[6] = dataBuff[8];	  	              
-              	}
-                else if (receiveDtype == dType_Attitude)		//dron Attitude
-                { 
-                	droneAttitude[0] = dataBuff[2];
-	                droneAttitude[1] = dataBuff[3];
-	                droneAttitude[2] = dataBuff[4];
-	                droneAttitude[3] = dataBuff[5];
-	                droneAttitude[4] = dataBuff[6];
-	                droneAttitude[5] = dataBuff[7];	  	                	                	      				                
-                }      
-                
-                else if (receiveDtype == dType_GyroBias)		//dron GyroBias
-                { 
-                	droneGyroBias[0] = dataBuff[2];
-	                droneGyroBias[1] = dataBuff[3];
-	                droneGyroBias[2] = dataBuff[4];
-	                droneGyroBias[3] = dataBuff[5];
-	                droneGyroBias[4] = dataBuff[6];
-	                droneGyroBias[5] = dataBuff[7];	  	   				                
-                }                 
-                                
-                else if (receiveDtype == dType_TrimAll)		//dron TrimAll
-                { 
-                	droneTrimAll[0] = dataBuff[2];
-	                droneTrimAll[1] = dataBuff[3];
-	                droneTrimAll[2] = dataBuff[4];
-	                droneTrimAll[3] = dataBuff[5];
-	                droneTrimAll[4] = dataBuff[6];
-	                droneTrimAll[5] = dataBuff[7];	                
-	                droneTrimAll[6] = dataBuff[8];
-	                droneTrimAll[7] = dataBuff[9];
-	                droneTrimAll[8] = dataBuff[10];
-	                droneTrimAll[9] = dataBuff[11];	                    				                
-                }           
-                                
-                else if (receiveDtype == dType_TrimFlight)		//dron TrimFlight
-                { 
-                	droneTrimFlight[0] = dataBuff[2];
-	                droneTrimFlight[1] = dataBuff[3];
-	                droneTrimFlight[2] = dataBuff[4];
-	                droneTrimFlight[3] = dataBuff[5];
-	                droneTrimFlight[4] = dataBuff[6];
-	                droneTrimFlight[5] = dataBuff[7];	                
-	                droneTrimFlight[6] = dataBuff[8];
-	                droneTrimFlight[7] = dataBuff[9];            				                
-                }                    
-                
-                else if (receiveDtype == dType_TrimDrive)		//dron TrimDrive
-                { 
-                	droneTrimDrive[0] = dataBuff[2];
-	                droneTrimDrive[1] = dataBuff[3];	               				                
-                }    
-                
-                else if (receiveDtype == dType_ImuRawAndAngle)//dron ImuRawAndAngle
-                {
-                	droneImuRawAndAngle[0] = dataBuff[2];
-	                droneImuRawAndAngle[1] = dataBuff[3];
-	                droneImuRawAndAngle[2] = dataBuff[4];
-	                droneImuRawAndAngle[3] = dataBuff[5];
-	                droneImuRawAndAngle[4] = dataBuff[6];
-	                droneImuRawAndAngle[5] = dataBuff[7];	  	 
-	              	droneImuRawAndAngle[6] = dataBuff[8];	  	  
-	               	droneImuRawAndAngle[7] = dataBuff[9];	  	 
-	                droneImuRawAndAngle[8] = dataBuff[10];	  		                                   
-                }
-                
-                else if (receiveDtype == dType_Pressure)//dron Pressure
-                {
-                	dronePressure[0] = dataBuff[2];
-                	dronePressure[1] = dataBuff[3];	
-                	dronePressure[2] = dataBuff[4];	
-                	dronePressure[3] = dataBuff[5];
-                	dronePressure[4] = dataBuff[6];
-                	dronePressure[5] = dataBuff[7];
-                	dronePressure[6] = dataBuff[8];
-                	dronePressure[7] = dataBuff[9];
-                	dronePressure[8] = dataBuff[10];
-                	dronePressure[9] = dataBuff[11];
-                	dronePressure[10] = dataBuff[12];
-                	dronePressure[11] = dataBuff[13];
-                	dronePressure[12] = dataBuff[14];
-                	dronePressure[13] = dataBuff[15];
-                	dronePressure[14] = dataBuff[16];
-                	dronePressure[15] = dataBuff[17];
-              	}
-                
-                else if (receiveDtype ==  dType_ImageFlow)//dron ImageFlow
-                {
-                	droneImageFlow[0] = dataBuff[2];
-                	droneImageFlow[1] = dataBuff[3]; 
-                	droneImageFlow[2] = dataBuff[4];
-                	droneImageFlow[3] = dataBuff[5]; 
-                	droneImageFlow[4] = dataBuff[6];
-                	droneImageFlow[5] = dataBuff[7]; 
-                	droneImageFlow[6] = dataBuff[8];
-                	droneImageFlow[7] = dataBuff[9];                 	
-                }
-                     
+                            
                 else if (receiveDtype ==  dType_Button)//dron Button
                 {
-                	droneButton[0] = dataBuff[2];
+                	receiveCompleteData[0] = dataBuff[2];
                 }
-                       
-                else if (receiveDtype ==  dType_Batery)//dron Batery
+                          
+             		else if (receiveDtype == dType_TrimDrive)		//dron TrimDrive
+                { 
+                	receiveCompleteData[0] = dataBuff[2];
+	                receiveCompleteData[1] = dataBuff[3];	               				                
+                }   
+                                                                     
+                else if (receiveDtype == dType_IrMessage)		//IrMessage
+                {           	
+	                receiveCompleteData[0] = dataBuff[2];
+	                receiveCompleteData[1] = dataBuff[3];
+	                receiveCompleteData[2] = dataBuff[4];
+	                receiveCompleteData[3] = dataBuff[5];
+	                receiveCompleteData[4] = dataBuff[6];	              
+              	}            
+              	              
+                else if ((receiveDtype == dType_Attitude) || (receiveDtype == dType_GyroBias))		//dron Attitude	|| dron GyroBias
+                { 
+                	receiveCompleteData[0] = dataBuff[2];
+	                receiveCompleteData[1] = dataBuff[3];
+	                receiveCompleteData[2] = dataBuff[4];
+	                receiveCompleteData[3] = dataBuff[5];
+	                receiveCompleteData[4] = dataBuff[6];
+	                receiveCompleteData[5] = dataBuff[7];	  	                	                	      				                
+                }         
+                else if (receiveDtype == dType_State)				//dron state
+                {           	
+	                receiveCompleteData[0] = dataBuff[2];
+	                receiveCompleteData[1] = dataBuff[3];
+	                receiveCompleteData[2] = dataBuff[4];
+	                receiveCompleteData[3] = dataBuff[5];
+	                receiveCompleteData[4] = dataBuff[6];
+	                receiveCompleteData[5] = dataBuff[7];	
+	                receiveCompleteData[6] = dataBuff[8];	  	              
+              	}
+                          
+                else if ((receiveDtype == dType_TrimFlight)|| (receiveDtype ==  dType_ImageFlow) || (receiveDtype ==  dType_Temperature))	//dron TrimFlight  || dron ImageFlow || dron Temperature
+                { 
+                	receiveCompleteData[0] = dataBuff[2];
+	                receiveCompleteData[1] = dataBuff[3];
+	                receiveCompleteData[2] = dataBuff[4];
+	                receiveCompleteData[3] = dataBuff[5];
+	                receiveCompleteData[4] = dataBuff[6];
+	                receiveCompleteData[5] = dataBuff[7];	                
+	                receiveCompleteData[6] = dataBuff[8];
+	                receiveCompleteData[7] = dataBuff[9];            				                
+                }                    
+                    
+                else if (receiveDtype == dType_ImuRawAndAngle)	//dron ImuRawAndAngle
                 {
-                	droneBattery[0] = dataBuff[2];
-                	droneBattery[1] = dataBuff[3];	
-                	droneBattery[2] = dataBuff[4];	
-                	droneBattery[3] = dataBuff[5];
-                	droneBattery[4] = dataBuff[6];
-                	droneBattery[5] = dataBuff[7];
-                	droneBattery[6] = dataBuff[8];
-                	droneBattery[7] = dataBuff[9];
-                	droneBattery[8] = dataBuff[10];
-                	droneBattery[9] = dataBuff[11];
-                	droneBattery[10] = dataBuff[12];
-                	droneBattery[11] = dataBuff[13];
-                	droneBattery[12] = dataBuff[14];
-                	droneBattery[13] = dataBuff[15];
-                	droneBattery[14] = dataBuff[16];
-                	droneBattery[15] = dataBuff[17];                	      
-                }    
-                                          
-                else if (receiveDtype ==  dType_Motor)//dron Motor
+                	receiveCompleteData[0] = dataBuff[2];
+	                receiveCompleteData[1] = dataBuff[3];
+	                receiveCompleteData[2] = dataBuff[4];
+	                receiveCompleteData[3] = dataBuff[5];
+	                receiveCompleteData[4] = dataBuff[6];
+	                receiveCompleteData[5] = dataBuff[7];	  	 
+	              	receiveCompleteData[6] = dataBuff[8];	  	  
+	               	receiveCompleteData[7] = dataBuff[9];	  	 
+	                receiveCompleteData[8] = dataBuff[10];	  		                                   
+                }
+                                        
+                else if (receiveDtype == dType_TrimAll)				//dron TrimAll
+                { 
+                	receiveCompleteData[0] = dataBuff[2];
+	                receiveCompleteData[1] = dataBuff[3];
+	                receiveCompleteData[2] = dataBuff[4];
+	                receiveCompleteData[3] = dataBuff[5];
+	                receiveCompleteData[4] = dataBuff[6];
+	                receiveCompleteData[5] = dataBuff[7];	                
+	                receiveCompleteData[6] = dataBuff[8];
+	                receiveCompleteData[7] = dataBuff[9];
+	                receiveCompleteData[8] = dataBuff[10];
+	                receiveCompleteData[9] = dataBuff[11];	                    				                
+                }           
+                                     
+                else if ((receiveDtype == dType_Pressure) || (receiveDtype ==  dType_Batery) ||  (receiveDtype ==  dType_Motor))	//dron Pressure || dron Batery || dron Motor
                 {
-                	droneMotor[0] = dataBuff[2];
-                	droneMotor[1] = dataBuff[3];
-                  droneMotor[2] = dataBuff[4];
-                	droneMotor[3] = dataBuff[5];                	
-                }            
-                     
-                else if (receiveDtype ==  dType_Temperature)//dron Temperature
-                {
-                	droneTemperature[0] = dataBuff[2];
-                	droneTemperature[1] = dataBuff[3];
-                	droneTemperature[2] = dataBuff[4];
-                	droneTemperature[3] = dataBuff[5];
-                	droneTemperature[4] = dataBuff[6];
-                	droneTemperature[5] = dataBuff[7];
-                	droneTemperature[6] = dataBuff[8];
-                	droneTemperature[7] = dataBuff[9];
-                }    
+                	receiveCompleteData[0] = dataBuff[2];
+                	receiveCompleteData[1] = dataBuff[3];	
+                	receiveCompleteData[2] = dataBuff[4];	
+                	receiveCompleteData[3] = dataBuff[5];
+                	receiveCompleteData[4] = dataBuff[6];
+                	receiveCompleteData[5] = dataBuff[7];
+                	receiveCompleteData[6] = dataBuff[8];
+                	receiveCompleteData[7] = dataBuff[9];
+                	receiveCompleteData[8] = dataBuff[10];
+                	receiveCompleteData[9] = dataBuff[11];
+                	receiveCompleteData[10] = dataBuff[12];
+                	receiveCompleteData[11] = dataBuff[13];
+                	receiveCompleteData[12] = dataBuff[14];
+                	receiveCompleteData[13] = dataBuff[15];
+                	receiveCompleteData[14] = dataBuff[16];
+                	receiveCompleteData[15] = dataBuff[17];
+              	}
                 
                 /***********************************************/                  
                 else if (receiveDtype == dType_LinkRssi)//Discovered Device
@@ -1231,6 +1423,10 @@ void CoDroneClass::Receive()
                 else if (receiveDtype == dType_LinkDiscoveredDevice)//Discovered Device
                 {
                   byte devIndex = dataBuff[2];
+                  
+									byte devName0[20];
+									byte devName1[20];
+									byte devName2[20];
 
                   if (devIndex == 0)
                   {
@@ -1246,7 +1442,7 @@ void CoDroneClass::Receive()
                                                             
                     devRSSI0 = dataBuff[29];
                     devFind[0] = 1; 
-                    LED_PORTC(0b00000010);
+                 //   LED_PORTC(0b00000010);
                   }
                   else if (devIndex == 1)
                   {
@@ -1262,7 +1458,7 @@ void CoDroneClass::Receive()
                     
                     devRSSI1 = dataBuff[29];
                     devFind[1] = 1;
-                    LED_PORTC(0b00000110);
+                  //  LED_PORTC(0b00000110);
                   }
                   else if (devIndex == 2)
                   {
@@ -1278,25 +1474,27 @@ void CoDroneClass::Receive()
                     
                     devRSSI2 = dataBuff[29];
                     devFind[2] = 1;   
-                    LED_PORTC(0b00100110);
+                 //   LED_PORTC(0b00100110);
                   }
 
                   devCount = devFind[0] +  devFind[1] +  devFind[2];
                   
+                  
                   #if defined(FIND_HWSERIAL1)
+                  
 								  if(debugMode == 1)
 								  {								  	
-                		DisplayAddress(devCount); //Address display								    
+                		DisplayAddress(devCount, devName0, devName1, devName2); //Address display								    
 								  }
 							    #endif  
 							      
-               
                 }
               }              
               /***********************************************/      
 
               checkHeader = 0;
               cmdIndex = 0;
+              ReceiveEventCheck(receiveCompleteData);
             }
           }
         }
@@ -1308,13 +1506,12 @@ void CoDroneClass::Receive()
       }
     }
   }
-  ReceiveEventCheck();
+//  ReceiveEventCheck();
 }
 /***************************************************************************/
 
 void CoDroneClass::PrintDroneAddress()
-{
-	
+{	
   Send_LinkModeBroadcast(LinkBroadcast_Mute);    
   delay(100);
   
@@ -1333,14 +1530,14 @@ void CoDroneClass::PrintDroneAddress()
 
 /**********************************************************/
 
-void CoDroneClass::DisplayAddress(byte count)
+void CoDroneClass::DisplayAddress(byte count, byte _devName0[], byte _devName1[],byte _devName2[])
 {	
   #if defined(FIND_HWSERIAL1)
   if(debugMode == 1)
   {																			  	
-	  if (count == 1)    		DEBUG_SERIAL.print("index 0 - ADRESS : ");
-	  else if (count == 2)  DEBUG_SERIAL.print("index 1 - ADRESS : ");
-	  else if (count == 3)  DEBUG_SERIAL.print("index 2 - ADRESS : ");
+	  if (count == 1)    		DEBUG_SERIAL.print("index 0 - ADDRESS : ");
+	  else if (count == 2)  DEBUG_SERIAL.print("index 1 - ADDRESS : ");
+	  else if (count == 3)  DEBUG_SERIAL.print("index 2 - ADDRESS : ");
 	
 	  for (int i = 0; i <= 5; i++)
 	  {
@@ -1367,15 +1564,15 @@ void CoDroneClass::DisplayAddress(byte count)
 	  {
 	    if (count == 1)
 	    {
-	      DEBUG_SERIAL.write(devName0[i]);
+	      DEBUG_SERIAL.write(_devName0[i]);
 	    }	    
 	    else if (count == 2)
 	    {
-	      DEBUG_SERIAL.write(devName1[i]);
+	      DEBUG_SERIAL.write(_devName1[i]);
 	    }	    	
 	    else if (count == 3)
 	    {
-	      DEBUG_SERIAL.write(devName2[i]);
+	      DEBUG_SERIAL.write(_devName2[i]);
 	    }
 	  }	  	  	  
 	  	  	  
@@ -1389,6 +1586,7 @@ void CoDroneClass::DisplayAddress(byte count)
 }
 
 /**********************************************************/
+
 
 void CoDroneClass::LED_Start()
 {
@@ -1539,10 +1737,9 @@ int CoDroneClass::LowBatteryCheck(byte value)
 	 		
 		  if(bat < value)
 		  {
-					BeepWarning(5);
-			}			
-			
-			droneState[0] = 0;
+			BeepWarning(5);
+		  }						
+		  droneState[0] = 0;
 		  droneState[1] = 0;
 		  droneState[2] = 0;
 		  droneState[3] = 0;
@@ -1583,7 +1780,7 @@ int CoDroneClass::LowBatteryCheck(byte value)
 
 void CoDroneClass::LinkStateCheck()	//ready or connected ?
 {
-	linkState = -1;
+	linkState = 0;
 	Send_LinkState();
 
   delay(50);
@@ -1597,7 +1794,7 @@ void CoDroneClass::LinkStateCheck()	//ready or connected ?
 /**********************************************************/
 
 
-void CoDroneClass::ReceiveEventCheck()
+void CoDroneClass::ReceiveEventCheck(byte _completeData[])
 {
 	/***************************************************************/
 		
@@ -1607,8 +1804,17 @@ void CoDroneClass::ReceiveEventCheck()
 		
 		if (receiveDtype == dType_State)
 		{
-			if (droneState[0] != 0 )
-			{	 		  
+			if (_completeData[0] != 0 )
+			{
+					 		  				
+	        droneState[0] = _completeData[0];
+          	droneState[1] = _completeData[1];
+          	droneState[2] = _completeData[2];
+          	droneState[3] = _completeData[3];
+          	droneState[4] = _completeData[4];
+          	droneState[5] = _completeData[5];	
+          	droneState[6] = _completeData[6];	  				
+				
 				  #if defined(FIND_HWSERIAL1)				  
 				  if(debugMode == 1)
 				  { 
@@ -1678,48 +1884,89 @@ void CoDroneClass::ReceiveEventCheck()
 			  }	
 		    #endif		
 		    				
-			  receiveEventState = -1;	  
-			  receiveComplete = -1;
-			  receiveLength = -1;
-			  receiveLinkState = -1;
-			  receiveDtype = -1;	
 			}		
 		}
+		
+		/**************************************************************/
+		
+	 else if (receiveDtype == dType_IrMessage)		//IrMessage
+     {
+     	
+   	  byte irMassageDirection	= _completeData[0];
+   	  
+   	  unsigned long _irMassge[4];
+   	  
+   	  _irMassge[0] = _completeData[1];
+   	  _irMassge[1] = _completeData[2];
+   	  _irMassge[2] = _completeData[3];
+   	  _irMassge[3] = _completeData[4];
+   	     	  
+   	  irMassageReceive	= ((_irMassge[3] << 24) | (_irMassge[2] << 16) | (_irMassge[1] << 8) | (_irMassge[0]  & 0xff));
+   	  
+  	  #if defined(FIND_HWSERIAL1)		
+  	  
+		  if(debugMode == 1)
+		  { 			  			  	
+				DEBUG_SERIAL.println("");                	                
+				DEBUG_SERIAL.println("- IrMassage");
+				DEBUG_SERIAL.print("[ ");
+				DEBUG_SERIAL.print(_completeData[0],HEX);
+				DEBUG_SERIAL.print(", ");
+				DEBUG_SERIAL.print(_completeData[1],HEX);
+				DEBUG_SERIAL.print(", ");
+				DEBUG_SERIAL.print(_completeData[2],HEX);
+				DEBUG_SERIAL.print(", ");
+				DEBUG_SERIAL.print(_completeData[3],HEX);
+				DEBUG_SERIAL.print(", ");
+				DEBUG_SERIAL.print(_completeData[4],HEX);		
+				DEBUG_SERIAL.println(" ]");
+				
+				DEBUG_SERIAL.print("IrMassageDirection\t");					
+				DEBUG_SERIAL.print(irMassageDirection);
+				
+				if(irMassageDirection == 1)				DEBUG_SERIAL.println(" (Left)");
+				else if (irMassageDirection == 2)	DEBUG_SERIAL.println(" (Front)");
+				else if (irMassageDirection == 3)	DEBUG_SERIAL.println(" (Right)");
+				else if (irMassageDirection == 4)	DEBUG_SERIAL.println(" (Rear)");
+				else DEBUG_SERIAL.println("None");
+								
+				DEBUG_SERIAL.print("IrMassageReceive\t");	
+				DEBUG_SERIAL.println(irMassageReceive);
+																					
+			}	
+		  #endif	
+		  
+                  
+     }                          
 			/**************************************************************/
-		else if (receiveDtype == dType_Attitude)
-	  {  			
-	  		  	
-				attitudeRoll		= ((droneAttitude[1] << 8) | (droneAttitude[0]  & 0xff));
-				attitudePitch	= ((droneAttitude[3] << 8) | (droneAttitude[2]  & 0xff));
-				attitudeYaw		= ((droneAttitude[5] << 8) | (droneAttitude[4]  & 0xff));
+	  else if (receiveDtype == dType_Attitude)
+	  {
+				attitudeRoll	= ((_completeData[1] << 8) | (_completeData[0]  & 0xff));
+				attitudePitch	= ((_completeData[3] << 8) | (_completeData[2]  & 0xff));
+				attitudeYaw		= ((_completeData[5] << 8) | (_completeData[4]  & 0xff));
 				
 				receiveAttitudeSuccess = 1;
-																					
-					  		          	
+				
 	  	  #if defined(FIND_HWSERIAL1)				  
-	  	    	  														//	Serial.println(millis());
-	  	  																	//Serial.println(AttitudeYAW);
-	  	  		
+	  	    	  														  	  		
 			  if(debugMode == 1)
 			  { 			  	
 					DEBUG_SERIAL.println("");                	                
 					DEBUG_SERIAL.println("- Attitude");
 					DEBUG_SERIAL.print("[ ");
-					DEBUG_SERIAL.print(droneAttitude[0],HEX);
+					DEBUG_SERIAL.print(_completeData[0],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneAttitude[1],HEX);
+					DEBUG_SERIAL.print(_completeData[1],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneAttitude[2],HEX);
+					DEBUG_SERIAL.print(_completeData[2],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneAttitude[3],HEX);
+					DEBUG_SERIAL.print(_completeData[3],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneAttitude[4],HEX);
+					DEBUG_SERIAL.print(_completeData[4],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneAttitude[5],HEX);				
+					DEBUG_SERIAL.print(_completeData[5],HEX);				
 					DEBUG_SERIAL.println(" ]");
 					
-
-
 					DEBUG_SERIAL.print("ROLL\t");	
 					DEBUG_SERIAL.println(attitudeRoll);
 					
@@ -1732,38 +1979,33 @@ void CoDroneClass::ReceiveEventCheck()
 				}	
 			  #endif	
 			  
-			  receiveEventState = -1;	  
-			  receiveComplete = -1;
-			  receiveLength = -1;
-			  receiveLinkState = -1;
-			  receiveDtype = -1;	
 	  }	 
 	  
 		/**************************************************************/	
 		else if (receiveDtype == dType_GyroBias)
-	  {  				  	
+	    {  				  	
 	  	  #if defined(FIND_HWSERIAL1)				  
 			  if(debugMode == 1)
 			  { 			  	
 					DEBUG_SERIAL.println("");                	                
 					DEBUG_SERIAL.println("- GyroBias");
 					DEBUG_SERIAL.print("[ ");
-					DEBUG_SERIAL.print(droneGyroBias[0],HEX);
+					DEBUG_SERIAL.print(_completeData[0],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneGyroBias[1],HEX);
+					DEBUG_SERIAL.print(_completeData[1],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneGyroBias[2],HEX);
+					DEBUG_SERIAL.print(_completeData[2],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneGyroBias[3],HEX);
+					DEBUG_SERIAL.print(_completeData[3],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneGyroBias[4],HEX);
+					DEBUG_SERIAL.print(_completeData[4],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneGyroBias[5],HEX);				
+					DEBUG_SERIAL.print(_completeData[5],HEX);				
 					DEBUG_SERIAL.println(" ]");
 					
-					int GyroBias_Roll		= ((droneGyroBias[1] << 8) | (droneGyroBias[0]  & 0xff));
-					int GyroBias_Pitch	= ((droneGyroBias[3] << 8) | (droneGyroBias[2]  & 0xff));
-					int GyroBias_Yaw		= ((droneGyroBias[5] << 8) | (droneGyroBias[4]  & 0xff));
+					int GyroBias_Roll		= ((_completeData[1] << 8) | (_completeData[0]  & 0xff));
+					int GyroBias_Pitch		= ((_completeData[3] << 8) | (_completeData[2]  & 0xff));
+					int GyroBias_Yaw		= ((_completeData[5] << 8) | (_completeData[4]  & 0xff));
 					
 					DEBUG_SERIAL.print("GyroBias ROLL\t");	
 					DEBUG_SERIAL.println(GyroBias_Roll);
@@ -1777,49 +2019,45 @@ void CoDroneClass::ReceiveEventCheck()
 				}	
 			  #endif		
 			  
-			  receiveEventState = -1;	  
-			  receiveComplete = -1;
-			  receiveLength = -1;
-			  receiveLinkState = -1;
-			  receiveDtype = -1;	
 	  }	
 	  
 	/**************************************************************/	
 	  
 		else if (receiveDtype == dType_TrimAll)
-		{			
+		{				
+			TrimAll_Roll			= ((_completeData[1] << 8) | (_completeData[0]  & 0xff));
+			TrimAll_Pitch			= ((_completeData[3] << 8) | (_completeData[2]  & 0xff));
+			TrimAll_Yaw				= ((_completeData[5] << 8) | (_completeData[4]  & 0xff));
+			TrimAll_Throttle		= ((_completeData[7] << 8) | (_completeData[6]  & 0xff));
+			TrimAll_Wheel			= ((_completeData[9] << 8) | (_completeData[8]  & 0xff));
+			
 			 #if defined(FIND_HWSERIAL1)				  
 			  if(debugMode == 1)
 			  { 			  	
 					DEBUG_SERIAL.println("");                	                
 					DEBUG_SERIAL.println("- TrimAll");
 					DEBUG_SERIAL.print("[ ");
-					DEBUG_SERIAL.print(droneTrimAll[0],HEX);
+					DEBUG_SERIAL.print(_completeData[0],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimAll[1],HEX);
+					DEBUG_SERIAL.print(_completeData[1],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimAll[2],HEX);
+					DEBUG_SERIAL.print(_completeData[2],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimAll[3],HEX);
+					DEBUG_SERIAL.print(_completeData[3],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimAll[4],HEX);
+					DEBUG_SERIAL.print(_completeData[4],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimAll[5],HEX);				
+					DEBUG_SERIAL.print(_completeData[5],HEX);				
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimAll[6],HEX);				
+					DEBUG_SERIAL.print(_completeData[6],HEX);				
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimAll[7],HEX);				
+					DEBUG_SERIAL.print(_completeData[7],HEX);				
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimAll[8],HEX);			
+					DEBUG_SERIAL.print(_completeData[8],HEX);			
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimAll[9],HEX);				
+					DEBUG_SERIAL.print(_completeData[9],HEX);				
 					DEBUG_SERIAL.println(" ]");			
 						  
-			  	int TrimAll_Roll			= ((droneTrimAll[1] << 8) | (droneTrimAll[0]  & 0xff));
-					int TrimAll_Pitch			= ((droneTrimAll[3] << 8) | (droneTrimAll[2]  & 0xff));
-					int TrimAll_Yaw				= ((droneTrimAll[5] << 8) | (droneTrimAll[4]  & 0xff));
-					int TrimAll_Throttle	= ((droneTrimAll[7] << 8) | (droneTrimAll[6]  & 0xff));
-					int TrimAll_Wheel			= ((droneTrimAll[9] << 8) | (droneTrimAll[8]  & 0xff));
 															
 					DEBUG_SERIAL.print("Trim ROLL\t");	
 					DEBUG_SERIAL.println(TrimAll_Roll);
@@ -1838,43 +2076,40 @@ void CoDroneClass::ReceiveEventCheck()
 			  }	
 			 #endif	
 			  
-				receiveEventState = -1;	  
-			  receiveComplete = -1;
-			  receiveLength = -1;
-			  receiveLinkState = -1;
-			  receiveDtype = -1;	
 		}
 	/**************************************************************/	
 	  else if (receiveDtype == dType_TrimFlight)		//
     { 
-	 		#if defined(FIND_HWSERIAL1)				  
+    		TrimAll_Roll		= ((_completeData[1] << 8) | (_completeData[0]  & 0xff));
+			TrimAll_Pitch		= ((_completeData[3] << 8) | (_completeData[2]  & 0xff));
+			TrimAll_Yaw			= ((_completeData[5] << 8) | (_completeData[4]  & 0xff));
+			TrimAll_Throttle	= ((_completeData[7] << 8) | (_completeData[6]  & 0xff));
+								
+    	
+	 		#if defined(FIND_HWSERIAL1)	
+	 			  
 			if(debugMode == 1)
 			{ 		
 					DEBUG_SERIAL.println("");                	                
 					DEBUG_SERIAL.println("- TrimFlight");
 					DEBUG_SERIAL.print("[ ");
-					DEBUG_SERIAL.print(droneTrimFlight[0],HEX);
+					DEBUG_SERIAL.print(_completeData[0],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimFlight[1],HEX);
+					DEBUG_SERIAL.print(_completeData[1],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimFlight[2],HEX);
+					DEBUG_SERIAL.print(_completeData[2],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimFlight[3],HEX);
+					DEBUG_SERIAL.print(_completeData[3],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimFlight[4],HEX);
+					DEBUG_SERIAL.print(_completeData[4],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimFlight[5],HEX);				
+					DEBUG_SERIAL.print(_completeData[5],HEX);				
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimFlight[6],HEX);				
+					DEBUG_SERIAL.print(_completeData[6],HEX);				
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimFlight[7],HEX);				
+					DEBUG_SERIAL.print(_completeData[7],HEX);				
 					DEBUG_SERIAL.println(" ]");			
-    	    	
-    			int TrimAll_Roll			= ((droneTrimFlight[1] << 8) | (droneTrimFlight[0]  & 0xff));
-					int TrimAll_Pitch			= ((droneTrimFlight[3] << 8) | (droneTrimFlight[2]  & 0xff));
-					int TrimAll_Yaw				= ((droneTrimFlight[5] << 8) | (droneTrimFlight[4]  & 0xff));
-					int TrimAll_Throttle	= ((droneTrimFlight[7] << 8) | (droneTrimFlight[6]  & 0xff));
-													
+    	    						
 					DEBUG_SERIAL.print("Trim ROLL\t");	
 					DEBUG_SERIAL.println(TrimAll_Roll);
 					
@@ -1891,11 +2126,6 @@ void CoDroneClass::ReceiveEventCheck()
 			 #endif	
 			  
 			  
-				receiveEventState = -1;	  
-			  receiveComplete = -1;
-			  receiveLength = -1;
-			  receiveLinkState = -1;
-			  receiveDtype = -1;	
     	
     	
   	}    
@@ -1910,23 +2140,19 @@ void CoDroneClass::ReceiveEventCheck()
 					DEBUG_SERIAL.println("");                	                
 					DEBUG_SERIAL.println("- TrimDrive");
 					DEBUG_SERIAL.print("[ ");
-					DEBUG_SERIAL.print(droneTrimDrive[0],HEX);
+					DEBUG_SERIAL.print(_completeData[0],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTrimDrive[1],HEX);
+					DEBUG_SERIAL.print(_completeData[1],HEX);
 					DEBUG_SERIAL.println(" ]");
 					
-			  	int TrimAll_Wheel			= ((droneTrimDrive[1] << 8) | (droneTrimDrive[0]  & 0xff));
+			  		 TrimAll_Wheel			= ((_completeData[1] << 8) | (_completeData[0]  & 0xff));
 			  	
 					DEBUG_SERIAL.print("Trim Wheel\t");	
 					DEBUG_SERIAL.println(TrimAll_Wheel);
 				}	
 			  #endif	
 			  	
-				receiveEventState = -1;	  
-			  receiveComplete = -1;
-			  receiveLength = -1;
-			  receiveLinkState = -1;
-			  receiveDtype = -1;	
+	
 		}
 	  
 		/**************************************************************/	
@@ -1938,38 +2164,37 @@ void CoDroneClass::ReceiveEventCheck()
 					DEBUG_SERIAL.println("");                	                
 					DEBUG_SERIAL.println("- ImuRawAndAngle");
 					DEBUG_SERIAL.print("[ ");
-					DEBUG_SERIAL.print(droneImuRawAndAngle[0],HEX);
+					DEBUG_SERIAL.print(_completeData[0],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneImuRawAndAngle[1],HEX);
+					DEBUG_SERIAL.print(_completeData[1],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneImuRawAndAngle[2],HEX);
+					DEBUG_SERIAL.print(_completeData[2],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneImuRawAndAngle[3],HEX);
+					DEBUG_SERIAL.print(_completeData[3],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneImuRawAndAngle[4],HEX);
+					DEBUG_SERIAL.print(_completeData[4],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneImuRawAndAngle[5],HEX);				
+					DEBUG_SERIAL.print(_completeData[5],HEX);				
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneImuRawAndAngle[6],HEX);				
+					DEBUG_SERIAL.print(_completeData[6],HEX);				
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneImuRawAndAngle[7],HEX);				
+					DEBUG_SERIAL.print(_completeData[7],HEX);				
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneImuRawAndAngle[8],HEX);				
+					DEBUG_SERIAL.print(_completeData[8],HEX);				
 					DEBUG_SERIAL.println(" ]");
 										
-					int ImuAccX	= droneImuRawAndAngle[0];
-					int ImuAccY	= droneImuRawAndAngle[1];
-					int ImuAccZ	= droneImuRawAndAngle[2];			
+					int ImuAccX	= _completeData[0];
+					int ImuAccY	= _completeData[1];
+					int ImuAccZ	= _completeData[2];			
 							
-					int ImuGyroRoll		= droneImuRawAndAngle[3];
-					int ImuGyroPitch	= droneImuRawAndAngle[4];
-					int ImuGyroYaw		= droneImuRawAndAngle[5];	
+					int ImuGyroRoll		= _completeData[3];
+					int ImuGyroPitch	= _completeData[4];
+					int ImuGyroYaw		= _completeData[5];	
 									
-					int ImuAngleRoll	= droneImuRawAndAngle[6];
-					int ImuAnglePitch	= droneImuRawAndAngle[7];
-					int ImuAngleYaw		= droneImuRawAndAngle[8];
-					
-					
+					int ImuAngleRoll	= _completeData[6];
+					int ImuAnglePitch	= _completeData[7];
+					int ImuAngleYaw		= _completeData[8];
+										
 					DEBUG_SERIAL.print("AccX\t");	
 					DEBUG_SERIAL.println(ImuAccX);
 					
@@ -1988,8 +2213,7 @@ void CoDroneClass::ReceiveEventCheck()
 					
 					DEBUG_SERIAL.print("GyroYaw \t");	
 					DEBUG_SERIAL.println(ImuGyroYaw);
-					
-					
+										
 					DEBUG_SERIAL.print("AngleRoll\t");	
 					DEBUG_SERIAL.println(ImuAngleRoll);
 					
@@ -2002,11 +2226,7 @@ void CoDroneClass::ReceiveEventCheck()
 				}	
 			  #endif		
 				    
-			  receiveEventState = -1;	  
-			  receiveComplete = -1;
-			  receiveLength = -1;
-			  receiveLinkState = -1;
-			  receiveDtype = -1;	
+			
 		}
 		
 	 /**************************************************************/		
@@ -2016,64 +2236,103 @@ void CoDroneClass::ReceiveEventCheck()
 			#if defined(FIND_HWSERIAL1)				  
 			  if(debugMode == 1)
 			  { 			  		
-			  	DEBUG_SERIAL.println("");                	                
+			  		DEBUG_SERIAL.println("");                	                
 					DEBUG_SERIAL.println("- Pressure");
 					DEBUG_SERIAL.print("[ ");
-					DEBUG_SERIAL.print(dronePressure[0],HEX);
+					
+					DEBUG_SERIAL.print(_completeData[0],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(dronePressure[1],HEX);
+					DEBUG_SERIAL.print(_completeData[1],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(dronePressure[2],HEX);
+					DEBUG_SERIAL.print(_completeData[2],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(dronePressure[3],HEX);
+					DEBUG_SERIAL.print(_completeData[3],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[4],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[5],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[6],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[7],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[8],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[9],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[10],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[11],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[12],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[13],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[14],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[15],HEX);
+					
 					DEBUG_SERIAL.println(" ]");
+					
+			  	long pressure1	= ((_completeData[3] << 32) |(_completeData[2] << 16) |(_completeData[1] << 8) | (_completeData[0]  & 0xff));
+			//  			  			
+			  						  						  						  			
+			  	DEBUG_SERIAL.print("pressure1\t");	
+					DEBUG_SERIAL.println(pressure1);
 			  	
 			  }	
 			  #endif	
-			  
-			  receiveEventState = -1;	  
-			  receiveComplete = -1;
-			  receiveLength = -1;
-			  receiveLinkState = -1;
-			  receiveDtype = -1;			
+			  		
 		}
-		
+		/**************************************************************/		
 		else if (receiveDtype ==  dType_ImageFlow)
- 		{
- 	
+ 		{ 	
  			#if defined(FIND_HWSERIAL1)				  
 			  if(debugMode == 1)
 			  { 			  		
 			  	DEBUG_SERIAL.println("");                	                
-					DEBUG_SERIAL.println("- ImageFlow");
-					DEBUG_SERIAL.print("[ ");
-					DEBUG_SERIAL.print(droneImageFlow[0],HEX);
-					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneImageFlow[1],HEX);
-					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneImageFlow[2],HEX);
-					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneImageFlow[3],HEX);
-					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneImageFlow[4],HEX);
-					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneImageFlow[5],HEX);
-					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneImageFlow[6],HEX);					
-					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneImageFlow[7],HEX);
+				DEBUG_SERIAL.println("- ImageFlow");
+				DEBUG_SERIAL.print("[ ");
+				DEBUG_SERIAL.print(_completeData[0],HEX);
+				DEBUG_SERIAL.print(", ");
+				DEBUG_SERIAL.print(_completeData[1],HEX);
+				DEBUG_SERIAL.print(", ");
+				DEBUG_SERIAL.print(_completeData[2],HEX);
+				DEBUG_SERIAL.print(", ");
+				DEBUG_SERIAL.print(_completeData[3],HEX);
+				DEBUG_SERIAL.print(", ");
+				DEBUG_SERIAL.print(_completeData[4],HEX);
+				DEBUG_SERIAL.print(", ");
+				DEBUG_SERIAL.print(_completeData[5],HEX);
+				DEBUG_SERIAL.print(", ");
+				DEBUG_SERIAL.print(_completeData[6],HEX);					
+				DEBUG_SERIAL.print(", ");
+				DEBUG_SERIAL.print(_completeData[7],HEX);
 			  	DEBUG_SERIAL.println(" ]");
+			  				  				  	
+			  	long SumX0	= _completeData[0];
+			  	long SumX1	= _completeData[1];
+			  	long SumX2	= _completeData[2];
+			  	long SumX3	= _completeData[3];
 			  	
+			  	long SumY0	= _completeData[4];
+			  	long SumY1	= _completeData[5];
+			  	long SumY2	= _completeData[6];
+			  	long SumY3	= _completeData[7];			  				  	
+			  	
+			  	long fVelocitySumX	= ((SumX3 << 32) |(SumX2 << 16) |(SumX1 << 8) | (SumX0  & 0xff));
+			  	long fVelocitySumY	= ((SumY3 << 32) |(SumY2 << 16) |(SumY1 << 8) | (SumY0  & 0xff));
+			  				  					  						  						  		
+			  	DEBUG_SERIAL.print("fVelocitySumX\t");	
+					DEBUG_SERIAL.println(fVelocitySumX);
+					
+					DEBUG_SERIAL.print("fVelocitySumY\t");	
+					DEBUG_SERIAL.println(fVelocitySumY);
 			  }	
 	 		#endif	
 		  
-		  receiveEventState = -1;	  
-		  receiveComplete = -1;
-		  receiveLength = -1;
-		  receiveLinkState = -1;
-		  receiveDtype = -1;
 		}
-								
+		/**************************************************************/		
 		else if (receiveDtype ==  dType_Button)
 		{				
 				#if defined(FIND_HWSERIAL1)				  
@@ -2082,18 +2341,13 @@ void CoDroneClass::ReceiveEventCheck()
 			  	DEBUG_SERIAL.println("");                	                
 					DEBUG_SERIAL.println("- Button");
 					DEBUG_SERIAL.print("[ ");
-					DEBUG_SERIAL.print(droneImageFlow[0],HEX);
+					DEBUG_SERIAL.print(_completeData[0],HEX);
 			  	DEBUG_SERIAL.println(" ]");
 			  }	
 	 			#endif	
 	 			
- 			receiveEventState = -1;	  
-		  receiveComplete = -1;
-		  receiveLength = -1;
-		  receiveLinkState = -1;
-		  receiveDtype = -1;
 		}
-		
+		/**************************************************************/		
 		else if (receiveDtype ==  dType_Batery)
 		{
 				#if defined(FIND_HWSERIAL1)				  
@@ -2102,50 +2356,46 @@ void CoDroneClass::ReceiveEventCheck()
 			  	DEBUG_SERIAL.println("");                	                
 					DEBUG_SERIAL.println("- Batery");
 					DEBUG_SERIAL.print("[ ");
-					DEBUG_SERIAL.print(droneBattery[0],HEX);
+					DEBUG_SERIAL.print(_completeData[0],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneBattery[1],HEX);
+					DEBUG_SERIAL.print(_completeData[1],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneBattery[2],HEX);
+					DEBUG_SERIAL.print(_completeData[2],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneBattery[3],HEX);
+					DEBUG_SERIAL.print(_completeData[3],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneBattery[4],HEX);
+					DEBUG_SERIAL.print(_completeData[4],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneBattery[5],HEX);
+					DEBUG_SERIAL.print(_completeData[5],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneBattery[6],HEX);
+					DEBUG_SERIAL.print(_completeData[6],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneBattery[7],HEX);
+					DEBUG_SERIAL.print(_completeData[7],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneBattery[8],HEX);
+					DEBUG_SERIAL.print(_completeData[8],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneBattery[9],HEX);
+					DEBUG_SERIAL.print(_completeData[9],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneBattery[10],HEX);
+					DEBUG_SERIAL.print(_completeData[10],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneBattery[11],HEX);
+					DEBUG_SERIAL.print(_completeData[11],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneBattery[12],HEX);
+					DEBUG_SERIAL.print(_completeData[12],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneBattery[13],HEX);
+					DEBUG_SERIAL.print(_completeData[13],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneBattery[14],HEX);
+					DEBUG_SERIAL.print(_completeData[14],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneBattery[15],HEX);
+					DEBUG_SERIAL.print(_completeData[15],HEX);
 										
 			  	DEBUG_SERIAL.println(" ]");
 			  	
 			  }	
 	 			#endif	
 	 			
- 			receiveEventState = -1;	  
-		  receiveComplete = -1;
-		  receiveLength = -1;
-		  receiveLinkState = -1;
-		  receiveDtype = -1;
+ 		
 		}
-				
+		/**************************************************************/	
     else if (receiveDtype ==  dType_Motor)
     {
 			#if defined(FIND_HWSERIAL1)				  
@@ -2154,24 +2404,86 @@ void CoDroneClass::ReceiveEventCheck()
 			  	DEBUG_SERIAL.println("");                	                
 					DEBUG_SERIAL.println("- Motor");
 					DEBUG_SERIAL.print("[ ");
-					DEBUG_SERIAL.print(droneMotor[0],HEX);
+					DEBUG_SERIAL.print(_completeData[0],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneMotor[1],HEX);
+					DEBUG_SERIAL.print(_completeData[1],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneMotor[2],HEX);
+					DEBUG_SERIAL.print(_completeData[2],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneMotor[3],HEX);
+					DEBUG_SERIAL.print(_completeData[3],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[4],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[5],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[6],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[7],HEX);
+					DEBUG_SERIAL.print(", ");	
+					DEBUG_SERIAL.print(_completeData[8],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[9],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[10],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[11],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[12],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[13],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[14],HEX);
+					DEBUG_SERIAL.print(", ");
+					DEBUG_SERIAL.print(_completeData[15],HEX);
+										
 			  	DEBUG_SERIAL.println(" ]");
+			  				  	
+			  	int m1_forward	= ((_completeData[1] << 8) | (_completeData[0]  & 0xff));
+			  	int m1_reverse	= ((_completeData[3] << 8) | (_completeData[2]  & 0xff));
+			  	 	
+			  	int m2_forward	= ((_completeData[5] << 8) | (_completeData[4]  & 0xff));
+			  	int m2_reverse	= ((_completeData[7] << 8) | (_completeData[6]  & 0xff));
+			  	 	
+			  	int m3_forward	= ((_completeData[9] << 8) | (_completeData[8]  & 0xff));
+			  	int m3_reverse	= ((_completeData[11] << 8) | (_completeData[10]  & 0xff));
+			  	 		 				  	 	
+			  	int m4_forward	= ((_completeData[13] << 8) | (_completeData[12]  & 0xff));
+			  	int m4_reverse	= ((_completeData[15] << 8) | (_completeData[14]  & 0xff));
+
+			  	DEBUG_SERIAL.println("[1]	[2]");	
+			  	DEBUG_SERIAL.println("  [ ]	 ");	
+			  	DEBUG_SERIAL.println("[4]	[3]");	
+									
+			  	
+			  	DEBUG_SERIAL.print("m1_forward\t");	
+					DEBUG_SERIAL.println(m1_forward);
+					
+			  	DEBUG_SERIAL.print("m1_reverse\t");	
+					DEBUG_SERIAL.println(m1_reverse);
+					
+			  	DEBUG_SERIAL.print("m2_forward\t");	
+					DEBUG_SERIAL.println(m2_forward);
+						 	 	
+			  	DEBUG_SERIAL.print("m2_reverse\t");	
+					DEBUG_SERIAL.println(m2_reverse);
+					
+			  	DEBUG_SERIAL.print("m3_forward\t");	
+					DEBUG_SERIAL.println(m3_forward);
+					
+			  	DEBUG_SERIAL.print("m3_reverse\t");	
+					DEBUG_SERIAL.println(m3_reverse);
+					
+			  	DEBUG_SERIAL.print("m4_forward\t");	
+					DEBUG_SERIAL.println(m4_forward);
+						 	 	
+			  	DEBUG_SERIAL.print("m4_reverse\t");	
+					DEBUG_SERIAL.println(m4_reverse);
+														 	 	 	 	 	
 			  }	
 		 	#endif	
 		 			
- 			receiveEventState = -1;	  
-		  receiveComplete = -1;
-		  receiveLength = -1;
-		  receiveLinkState = -1;
-		  receiveDtype = -1;
     }
-		
+		/**************************************************************/	
 		else if (receiveDtype == dType_Temperature)
     {
 			#if defined(FIND_HWSERIAL1)				  
@@ -2180,31 +2492,26 @@ void CoDroneClass::ReceiveEventCheck()
 			  	DEBUG_SERIAL.println("");                	                
 					DEBUG_SERIAL.println("- Temperature");
 					DEBUG_SERIAL.print("[ ");
-					DEBUG_SERIAL.print(droneTemperature[0],HEX);
+					DEBUG_SERIAL.print(_completeData[0],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTemperature[1],HEX);
+					DEBUG_SERIAL.print(_completeData[1],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTemperature[2],HEX);
+					DEBUG_SERIAL.print(_completeData[2],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTemperature[3],HEX);
+					DEBUG_SERIAL.print(_completeData[3],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTemperature[4],HEX);
+					DEBUG_SERIAL.print(_completeData[4],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTemperature[5],HEX);
+					DEBUG_SERIAL.print(_completeData[5],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTemperature[6],HEX);
+					DEBUG_SERIAL.print(_completeData[6],HEX);
 					DEBUG_SERIAL.print(", ");
-					DEBUG_SERIAL.print(droneTemperature[7],HEX);										
+					DEBUG_SERIAL.print(_completeData[7],HEX);										
 			  	DEBUG_SERIAL.println(" ]");
 			  }	
 			  
 		 	#endif	
 		 			
- 			receiveEventState = -1;	  
-		  receiveComplete = -1;
-		  receiveLength = -1;
-		  receiveLinkState = -1;
-		  receiveDtype = -1;
     }
 		
 	 /**************************************************************/		
@@ -2282,14 +2589,7 @@ void CoDroneClass::ReceiveEventCheck()
 					#endif					
 				}
 
-				linkState = receiveLinkState;
-									
-				receiveEventState = -1;	  
-				receiveComplete = -1;
-				receiveLength = -1;
-				receiveLinkState = -1;
-				receiveDtype = -1;
-			  		  		
+				linkState = receiveLinkState;			  		  		
 		}		
 	/**************************************************************/						
 				
@@ -2676,13 +2976,14 @@ void CoDroneClass::ReceiveEventCheck()
 		  	}	
 		 		#endif	
 	    }  
-	    
-  	  receiveEventState = -1;	  
-		  receiveComplete = -1;
-		  receiveLength = -1;
-		  receiveLinkState = -1;
-		  receiveDtype = -1;	
+	 
 	  }	  
+  	  
+  		receiveEventState = -1;	  
+		  receiveComplete = -1;
+		 // receiveLength = -1;
+		  receiveLinkState = -1;
+		//  receiveDtype = -1;	
   	  
 	}
 }
@@ -2780,8 +3081,148 @@ boolean CoDroneClass::TimeCheckBuzz(word interval) //micros seconds
   return time;
 }
 
+/***************************************************************************/
+int CoDroneClass::GestureCheckPosition(int sen1, boolean act1, int sen2, boolean act2)
+{
+	boolean state = false;
+	int val1,val2;
+	boolean ck1, ck2;
+	
+	val1 = analogRead(sen1);
+	val2 = analogRead(sen2);	
+				
+	//---------------------------------------------------------//         	
+	if(act1 == HIGH)	ck1 = (val1 > JOY_UP_LIMIT);			// ▲UP
+	else							ck1 = (val1 < JOY_DOWN_LIMIT);		// ▼down
+	if(act2 == HIGH)	ck2 = (val2 > JOY_UP_LIMIT);			// ▲UP	
+	else							ck2 = (val2 < JOY_DOWN_LIMIT);		// ▼down	
+	//---------------------------------------------------------//
+	
+	if(ck1 && ck2)	state = true;	
+		
+	return state;
+}
+
+int CoDroneClass::GestureReturnPositon(int sen1, int sen2)
+{
+//	boolean state = false;
+	int val1,val2;
+	boolean ck1, ck2;
+			
+	val1 = analogRead(sen1);
+	val2 = analogRead(sen2);	
+			
+	/*			
+	# define JOY_UP_LIMIT          800	
+	# define JOY_DOWN_LIMIT        220	
+	# define JOY_UP_RETURN_LIMIT   712	
+	# define JOY_DOWN_RETURN_LIMIT 312
+	*/
+				
+	//	ck1 = 200 > 800 || 200 < 312     0 1 
+	//	ck1 = 500 > 800 || 500 < 312     0 0
+	//	ck1 = 900 > 800 || 900 < 312     1 0
+						
+	ck1 = ((val1 > JOY_UP_RETURN_LIMIT) || (val1 < JOY_DOWN_RETURN_LIMIT));		// MIDDLE
+	ck2 = ((val2 > JOY_UP_RETURN_LIMIT) || (val2 < JOY_DOWN_RETURN_LIMIT));		// MIDDLE
+			
+	/*
+	//---------------------------------------------------------//         	
+	if(act1 == HIGH)	ck1 = (val1 > JOY_UP_RETURN_LIMIT);		// ▲UP
+	else							ck1 = (val1 < JOY_DOWN_RETURN_LIMIT);	// ▼down
+	
+	if(act2 == HIGH)	ck2 = (val2 > JOY_UP_RETURN_LIMIT);		// ▲UP	
+	else							ck2 = (val2 < JOY_DOWN_RETURN_LIMIT);	// ▼down	
+	//---------------------------------------------------------//
+	*/	
+	
+	//if(ck1 || ck2)	state = true;	
+		
+	return ck1 || ck2;
+}
+
+/***************************************************************************/
+
+//- ex // if (CoDrone.gestureFuntion(A4, LOW, A6, LOW, &CoDroneClass::FlightEvent, Stop)); 
+int CoDroneClass::GestureFuntion(int sen1, boolean act1, int sen2, boolean act2,void(CoDroneClass::*pf)(byte),byte command)
+{	
+	boolean state = false;
+	int val1,val2;
+	boolean ck1, ck2;
+	
+	val1 = analogRead(sen1);
+	val2 = analogRead(sen2);	
+			
+	//---------------------------------------------------------//         	
+	if(act1 == HIGH)	ck1 = (val1 > JOY_UP_LIMIT);			// ▲UP
+	else							ck1 = (val1 < JOY_DOWN_LIMIT);		// ▼down
+	if(act2 == HIGH)	ck2 = (val2 > JOY_UP_LIMIT);			// ▲UP	
+	else							ck2 = (val2 < JOY_DOWN_LIMIT);		// ▼down	
+	//---------------------------------------------------------//
+	
+	if(ck1 && ck2)
+	{		
+		while (ck1 && ck2)
+		{				
+			(CoDrone.*pf)(command);
+			delay(50);
+			
+			val1 = analogRead(sen1);
+			val2 = analogRead(sen2);	 
+						         	
+			if(act1 == HIGH)	ck1 = (val1 > JOY_UP_LIMIT);			// ▲UP
+			else							ck1 = (val1 < JOY_DOWN_LIMIT);		// ▼down
+			if(act2 == HIGH)	ck2 = (val2 > JOY_UP_LIMIT);			// ▲UP	
+			else							ck2 = (val2 < JOY_DOWN_LIMIT);		// ▼down						
+		}	
+		
+		while (ck1 || ck2)	//return
+	  {
+			val1 = analogRead(sen1);
+			val2 = analogRead(sen2);	 
+			         	
+			if(act1 == HIGH)	ck1 = (val1 > JOY_UP_RETURN_LIMIT);		// ▲UP
+			else							ck1 = (val1 < JOY_DOWN_RETURN_LIMIT);	// ▼down
+			if(act2 == HIGH)	ck2 = (val2 > JOY_UP_RETURN_LIMIT);		// ▲UP	
+			else							ck2 = (val2 < JOY_DOWN_RETURN_LIMIT);	// ▼down	
+	  }
+	  state = true;
+	}
+	return state;
+}
+
+
+
+void CoDroneClass::Delay(int setTime)
+{	
+	long baseTime = millis();			
+	int _interval = 120; 		//send term
+	
+	long _previousMillis;	
+	unsigned long _currentMillis = millis();
+	
+	delay(_interval);
+	
+	while ((setTime - _interval) > (millis() - baseTime))
+	{
+		_currentMillis = millis();		
+		if (_currentMillis - _previousMillis > _interval)
+		{
+		    _previousMillis = _currentMillis;
+		 		 			 
+		 	roll 	=	prevControl[0];
+			pitch 	=	prevControl[1];
+			yaw 	=	prevControl[2];
+			throttle =	prevControl[3];
+				
+		  	Control();
+		  	_previousMillis = millis();	 
+		}		 
+	}	
+	delay(_interval);
+}
 
 
 /*********************************************************/
 
-CoDroneClass CoDrone;                         
+CoDroneClass CoDrone;                                                                                           
