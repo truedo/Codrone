@@ -24,9 +24,9 @@ FlightEvent					KEYWORD2
 DriveEvent					KEYWORD2
 Receive						KEYWORD2
 AutoConnect					KEYWORD2
-PrintDroneAddress			KEYWORD2	
-LowBatteryCheck				KEYWORD2	
-DroneModeChange				KEYWORD2	
+PrintDroneAddress			KEYWORD2
+LowBatteryCheck				KEYWORD2
+DroneModeChange				KEYWORD2
 
 BattleBegin					KEYWORD2
 BattleReceive				KEYWORD2
@@ -54,8 +54,23 @@ Request_DroneAttitude		KEYWORD2
 Request_Range				KEYWORD2
 
 
-MoveToHeight		KEYWORD2
-MoveToAngle			KEYWORD2
+GoToHeight		KEYWORD2
+TurnDegree			KEYWORD2
+
+
+
+getPressure						KEYWORD2
+getDroneTemp					KEYWORD2
+getState							KEYWORD2
+getHeight							KEYWORD2
+getBatteryPercentage	KEYWORD2
+getBatteryVoltage			KEYWORD2
+getAccelerometer			KEYWORD2
+getTrim								KEYWORD2
+getOptFlowPosition		KEYWORD2
+getAngularSpeed				KEYWORD2
+getGyroAngles					KEYWORD2
+
 
 
 #######################################
@@ -68,9 +83,9 @@ FlightFPV				LITERAL1
 Drive					LITERAL1
 DriveFPV				LITERAL1
 
-ROLL					LITERAL1
-PITCH					LITERAL1
-YAW						LITERAL1
+ROLL							LITERAL1
+PITCH							LITERAL1
+YAW								LITERAL1
 THROTTLE				LITERAL1
 NearbyDrone				LITERAL1
 ConnectedDrone			LITERAL1
@@ -87,7 +102,7 @@ STATE					LITERAL1
 SEND_INTERVAL			LITERAL1
 CONNECTION				LITERAL1
 ANALOG_OFFSET			LITERAL1
-		
+
 TakeOff					LITERAL1
 Landing					LITERAL1
 
@@ -118,8 +133,15 @@ ThrottleDecrease		LITERAL1
 
 TEAM_RED				LITERAL1
 TEAM_BLUE				LITERAL1
-TEAM_GREEN				LITERAL1
-TEAM_YELLOW				LITERAL1
+TEAM_GREEN			LITERAL1
+TEAM_YELLOW			LITERAL1
 FREE_PLAY				LITERAL1
+
+
+gyrodata			LITERAL1
+optdata				LITERAL1
+trimdata			LITERAL1
+acceldata			LITERAL1
+
 
 receiveRangeSuccess		LITERAL1

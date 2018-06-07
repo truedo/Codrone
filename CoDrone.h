@@ -166,33 +166,10 @@ typedef uint8_t u8;
 #define ThrottleIncrease	trim_ThrottleIncrease
 #define ThrottleDecrease	trim_ThrottleDecrease
 
-
-
-
 //-------------------------------------------------------------------------------------//
 
 #define	Address					Req_Address					///< IEEE address
 #define	Attitude				Req_Attitude
-/*
-	Req_State,									///< 드론의 상태(비행 모드, 방위기준, 배터리량)
-	Req_Attitude,								///< 드론의 자세(Vector)
-	Req_GyroBias,								///< 자이로 바이어스 값(Vector)
-	Req_TrimAll,								///< 전체 트림
-	Req_TrimFlight,							///< 비행 트림
-	Req_TrimDrive,							///< 주행 트림
-	Req_CountFlight,						///< 비행 관련 카운트
-	Req_CountDrive,							///< 주행 관련 카운트
-	// 센서
-	Req_ImuRawAndAngle = 0x50,	///< IMU Raw + Angle
-	Req_Pressure,								///< 압력 센서 데이터
-	Req_ImageFlow,							///< ImageFlow
-	Req_Button,									///< 버튼 입력
-	Req_Battery,								///< 배터리
-	Req_Motor,									///< 모터 제어 및 현재 제어 값 확인
-	Req_Temperature,						///< 온도
-	Req_Range,									///< 거리 센서
-	Req_EndOfType
-*/
 
 typedef struct gyrodata
 {
@@ -630,7 +607,7 @@ class CoDroneClass
 {
 public:
 
-//------------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------------//
 	void begin(long baud);
 	void Receive(void);
 	void Control();
@@ -645,13 +622,11 @@ public:
 
 	//------------------------------------------------------------------------------------//
 
-	void Send_ConnectDrone(byte mode, byte address[]);
-
-//--------------------------------------------------------------------//
-
 	void ConnectionProcess(byte	mode,	byte address[]);
+	void AutoConnect();
 	void AutoConnect(byte mode);
-	void AutoConnect(byte mode, byte address[]);
+	void AutoConnect(byte mode, byte address[]);	
+	void Send_ConnectDrone(byte mode, byte address[]);
 	void Send_Disconnect();
 	void Send_Discover(byte action);
 	void Send_Check(byte _data[], byte _length, byte _crc[]);
@@ -659,11 +634,8 @@ public:
 //------------------------------------------------------------------------------------//
 
 	void Send_ResetHeading();
-//	void Send_RSSI_Polling(byte action);
 	void Send_Coordinate(byte mode);
-	void Send_ClearGyroBiasAndTrim();
-//	void Send_Ping();
-	
+	void Send_ClearGyroBiasAndTrim();	
 	void DroneModeChange(byte event);
 	void FlightEvent(byte event);
 	void DriveEvent(byte event);
@@ -684,18 +656,15 @@ public:
 //------------------------------------------------------------------------------------//
 
 	void LedColorProcess(byte _dType, byte sendMode, byte r, byte g, byte b, byte sendInterval);
-
 	void LedColor(byte sendMode, byte sendColor, byte sendInterval);
 	void LedColor(byte sendMode, byte r, byte g, byte b, byte sendInterval);
 	void LedColor(byte sendMode, byte sendColor[], byte sendInterval);
-
 	void LedColorDefault(byte sendMode, byte r, byte g, byte b, byte sendInterval);
 	void LedColorDefault(byte sendMode, byte sendColor[], byte sendInterval);
 	void LedColorDefault(byte sendMode, byte sendColor[], byte sendInterval, byte sendMode2, byte sendColor2[], byte sendInterval2);
 
 //------------------------------------------------------------------------------------//
 
-//	void LinkStateCheck();
 	void ReceiveEventCheck(byte _completeData[]);
 	void DisplayRSSI();
 	int LowBatteryCheck(byte value);
@@ -714,7 +683,6 @@ public:
 //------------------------------------------------------------------------------------//
 
 	void PrintDroneAddress();
-//	void DisplayAddress(byte count, byte _devName[]);
 
 //------------------------------------------------------------------------------------//
 
@@ -734,12 +702,11 @@ public:
 
 //------------------------------------------------------------------------------------//
 
-	//int ReadRange();
-	//int ReadYAW();
 	void GoToHeight(int _range);
 	void TurnDegree(int _angle);
 
-	//----------------------------------------------//
+
+//------------------------------------------------------------------------------------//
 	void ReceiveGetData(byte _reqType);
 	int getBatteryPercentage();
 	int getBatteryVoltage();
@@ -754,7 +721,7 @@ public:
 	gyrodata getGyroAngles();
 	trimdata getTrim();
 
-	//--------------------------------------------------//
+//------------------------------------------------------------------------------------//
 
 	byte receiveAttitudeSuccess = 0;
 	byte receiveRangeSuccess = 0;
@@ -766,8 +733,7 @@ public:
 	byte receiveBatterySuccess = 0;
 	byte receiveOptSuccess = 0;
 
-	//--------------------------------------------//
-
+//------------------------------------------------------------------------------------//
 
 	int roll = 0;
 	int pitch = 0;
@@ -777,7 +743,6 @@ public:
 	int attitudeRoll	= 0;
 	int attitudePitch	= 0;
 	int attitudeYaw	= 0;
-
 
 	int batteryPercent	= 0;
 	int batteryVoltage	= 0;
@@ -800,13 +765,13 @@ public:
 	int ImuAnglePitch	= 0;
 	int ImuAngleYaw		= 0;
 
-//------------------------------------------------------------------------------------//
-
 	int TrimAll_Roll;
 	int TrimAll_Pitch;
 	int TrimAll_Yaw;
 	int TrimAll_Throttle;
 	int TrimAll_Wheel;
+
+//------------------------------------------------------------------------------------//
 
 	byte cmdBuff[MAX_PACKET_LENGTH];
 
@@ -815,58 +780,31 @@ public:
 	byte receiveDtype;
 	byte receiveLength;
 
-//	byte receiveLikMode;
-//	byte receiveLinkState;
-//	int receiveEventState;
-//	int receiveComplete;
-
 //------------------------------------------------------------------------------------//
-
-	byte displayMode = 1;	//smar inventor : default 1
-//	byte debugMode = 0;		//smar inventor : default 0
-	/*
-	byte discoverFlag;
-	byte connectFlag;
-			*/
-	boolean pairing = 0;
-
+	
 	int SendInterval; //millis seconds
 	int analogOffset;
 
+	byte displayMode = 1;	//smar inventor : default 1
 
+	boolean pairing = false;
+	boolean	isConnected = false;
+	
 	byte timeOutRetry = 0;
 	byte sendCheckCount = 0;
 	byte sendCheckFlag = 0;
-
 	byte energy = 8;
 	byte team = FREE_PLAY;
+	
 	unsigned long weapon = FREE_MISSILE;
 
 //------------------------------------------------------------------------------------//
-	/*
-	byte devCount = 0;
-	byte devFind[5];
-
-	int devRSSI0 = -1;
-	int devRSSI1 = -1;
-	int devRSSI2 = -1;
-	int devRSSI3 = -1;
-	int devRSSI4 = -1;
-
-	byte devAddress0[6];
-	byte devAddress1[6];
-	byte devAddress2[6];
-	byte devAddress3[6];
-	byte devAddress4[6];
-
-	byte devAddressBuf[6];
-	byte devAddressConnected[6];
-	*/
+	//for CodeLoader
+	boolean sendingData = false;	
+	boolean sendDataControl = true;
+	
 //------------------------------------------------------------------------------------//
-
-//------------------------------------------------------------------------------------//
-
-	byte linkState = 0;;
+	byte linkState = 0;
 	int rssi = 0;
 	byte battery = 0;
 	unsigned long	irMessageReceive;
@@ -878,8 +816,6 @@ private:
 	long PreviousBuzz;
 	long timeOutSendPreviousMillis;
 	
-	//---------------------------------------------//
-
 	byte discoverFlag = 0;
 	byte connectFlag = 0;
 
