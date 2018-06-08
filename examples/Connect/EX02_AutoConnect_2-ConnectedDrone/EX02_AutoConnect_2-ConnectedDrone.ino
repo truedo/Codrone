@@ -8,7 +8,7 @@
 
 void setup()
 {
-  CoDrone.begin(115200);                // 드론 플러그의 통신 개시 (115200bps)
+  CoDrone.begin(115200);                // 드론과 통신 개시 (115200bps)
 
   CoDrone.AutoConnect(ConnectedDrone);  // 최근에 연결한 드론과 같은 어드레스 주소의 드론을 연결
   

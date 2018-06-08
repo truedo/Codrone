@@ -129,6 +129,8 @@ void CoDroneClass::ConnectionProcess(byte	mode,	byte address[])
   delay(50);  
   roll = 0;	pitch = 0;	yaw = 0;	throttle = 0;
   Control();
+  delay(50);  
+  while (DRONE_SERIAL.available() > 0)     Receive();  
   delay(50);     
 }
 
@@ -266,7 +268,7 @@ void CoDroneClass::Receive()
 										(receiveDtype ==	dType_TrimFlight)		||	(receiveDtype ==	 dType_ImageFlow)	||	(receiveDtype ==	 dType_Temperature)	||	(receiveDtype	== dType_State)					||
 										(receiveDtype ==	dType_Attitude)			||	(receiveDtype ==	dType_GyroBias)		||	(receiveDtype	== dType_IrMessage)			||	(receiveDtype	== dType_TrimDrive)			||
 										(receiveDtype	==	dType_Button)				||	(receiveDtype ==	dType_Ack)				||	(receiveDtype ==	dType_LinkDiscoveredDevice)	||
-										(receiveDtype ==	dType_LinkState)		||	(receiveDtype ==	dType_LinkEvent)	||	(receiveDtype	== dType_LinkEventAddress))
+										(receiveDtype ==	dType_LinkState)		||	(receiveDtype ==	dType_LinkEvent)	||	(receiveDtype	== dType_LinkEventAddress)	||	(receiveDtype ==	dType_LinkRssi))	
 										{
 											for(byte i = 0; i <= 27; i++)	receiveCompleteData[i] = dataBuff[i + 2];
 										}
@@ -431,7 +433,6 @@ void CoDroneClass::ReceiveEventCheck(byte	_completeData[])
 			DEBUG_SERIAL.println(rssi);
 		#endif
 	}
-
 
 	else if	(receiveDtype == dType_Ack)
 	{

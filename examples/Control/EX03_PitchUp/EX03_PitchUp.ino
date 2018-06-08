@@ -18,7 +18,7 @@ void setup()
   {
     CoDrone.FlightEvent(TakeOff);        // 이륙
 
-    delay(2000);                          // 대기 시간
+    delay(3000);                          // 대기 시간
 
     PITCH = 100;                           // PITCH 값 입력
     CoDrone.Control();                   // 조종값 전송
