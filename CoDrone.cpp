@@ -24,11 +24,13 @@ void CoDroneClass::begin(long	baud)
 	SendInterval = 50;										// millis	seconds
 	analogOffset = 10;										// analog	sensor offset
 	LED_Display(LED_DISPLAY_START, 0);		// LED_Start();
+
 	if (EEPROM.read(EEP_AddressCheck))		// Connected Drone Address Read
 	{
 		for	(int i = 0;	i	<= 5;	i++)	devAddressConnected[i] = EEPROM.read(EEP_AddressFirst+i);
-		isConnected = true;	
-	}	
+		isConnected = true;
+	}
+
 	#if	!defined(__AVR_ATmega328PB__)
 		Send_LinkModeBroadcast(LinkModeActive);			//Link Active	Mode
 		delay(100);
@@ -57,27 +59,35 @@ void CoDroneClass::Send_Discover(byte	action)
 //----------------------------------------- AutoConnect ------------------------------------------------//
 //-------------------------------------------------------------------------------------------------------//
 
-
 void CoDroneClass::AutoConnect()								// NearbyDrone or ConnectedDrone
 {
 	pinMode(10, INPUT_PULLUP);    								//DipSw3
   if (!digitalRead(10))	 isConnected = false;		//DipSw3 down бщ
-  
-  if(isConnected)	AutoConnect(ConnectedDrone);  
-  else AutoConnect(NearbyDrone);  
+
+  if(isConnected)	AutoConnect(ConnectedDrone);
+  else AutoConnect(NearbyDrone);
 }
+
 void CoDroneClass::AutoConnect(byte	mode)
 {
-	byte _temp[0];
-	ConnectionProcess(mode, _temp);
+	connectMode = mode;
+	ConnectionProcess();
 }
 
 void CoDroneClass::AutoConnect(byte	mode,	byte address[])
 {
-	ConnectionProcess(mode, address);
+	connectMode = mode;
+	for	(int i = 0;	i	<= 5;	i++)	devAddressConnected[i] = address[i];
+	ConnectionProcess();
 }
+//-------------------------------------------------------------------------------------------------------//
 
-void CoDroneClass::ConnectionProcess(byte	mode,	byte address[])
+
+//-------------------------------------------------------------------------------------------------------//
+//----------------------------------------- ConnectionProcess ------------------------------------------------//
+//-------------------------------------------------------------------------------------------------------//
+
+void CoDroneClass::ConnectionProcess()
 {
 	byte displayLED = 0;
 	//-----------------------------------------------------------//
@@ -85,6 +95,7 @@ void CoDroneClass::ConnectionProcess(byte	mode,	byte address[])
 	//-----------------------------------------------------------//
 	else																			// AutoConnect start
 	{
+		devNow = -1;
 		Send_Discover(DiscoverStart);
 		PreviousMillis = millis();
 		LED_Display(LED_DISPLAY_DDRC,	0xff);
@@ -96,104 +107,47 @@ void CoDroneClass::ConnectionProcess(byte	mode,	byte address[])
 				LED_Display(LED_DISPLAY_STANDARD,	0);
 				PreviousMillis = millis();
 
-				while(!TimeCheck(1000))	Receive();
-				while (DRONE_SERIAL.available() > 0)     Receive();
+		//		discoverFlag = 0;
 
-				discoverFlag = 0;
-
-				if (devCount > 0)
+				if(devNow > -1)
 				{
-					if (mode == NearbyDrone)						Send_ConnectDrone(mode, address);
-					else if (mode == ConnectedDrone)	 	Send_ConnectDrone(mode, devAddressConnected);
-					else if (mode == AddressInputDrone)	Send_ConnectDrone(mode, address);
+					connectFlag = 1;
+					Send_Command(cType_LinkConnect,	devNow);
 				}
 			}
+
+
 			else if((!(connectFlag == 1)) && (TimeCheck(400)))	// time	out	&	LED
 			{
 				if (displayLED++ ==	4)
 				{
 					displayLED = 0;
 					delay(50);
+
+					RSSI_High = -255;
+					devNow = -1;
 					Send_Discover(DiscoverStart);
 				}
 				LED_Display(LED_DISPLAY_MOVE_RADER,	displayLED);
 				PreviousMillis = millis();
 			}
+
+
 		  while (DRONE_SERIAL.available() > 0) 	Receive();
 		}
 		delay(50);
 	}
 	LED_Connect();
-	
-  while (DRONE_SERIAL.available() > 0)     Receive();  
-  delay(50);  
+
+  while (DRONE_SERIAL.available() > 0)     Receive();
+  delay(50);
   roll = 0;	pitch = 0;	yaw = 0;	throttle = 0;
   Control();
-  delay(50);  
-  while (DRONE_SERIAL.available() > 0)     Receive();  
-  delay(50);     
+  delay(50);
+  while (DRONE_SERIAL.available() > 0)     Receive();
+  delay(50);
 }
 
-void CoDroneClass::Send_ConnectDrone(byte mode, byte address[])
-{
-	byte connectDevice = 5;
-	
-	if(mode == NearbyDrone)
-	{
-		byte highRSSIDrone = 0;
-
-		for	(int i = 0 ; i < 5 ; i++)
-		{
-			if (devRSSI[highRSSIDrone]	>	devRSSI[i]) highRSSIDrone = highRSSIDrone;
-			else highRSSIDrone = i;
-		}
-		connectDevice = highRSSIDrone;
-	}
-	else if((mode == ConnectedDrone) || (mode == AddressInputDrone))
-	{
-		byte _addrCk0 = 0,_addrCk1 = 0,_addrCk2 = 0, _addrCk3 = 0, _addrCk4 = 0;
-		byte _rvAddrCk0 = 0, _rvAddrCk1 = 0, _rvAddrCk2 = 0, _rvAddrCk3 = 0, _rvAddrCk4 = 0;		//reverse addr check - robolinl-bt
-
-		for	(int i = 0;	i	<= 5;	i++)		// same	address	check
-		{
-			if (address[i] ==	devAddress0[i])	 	_addrCk0++;
-			if (address[i] ==	devAddress1[i])	 	_addrCk1++;
-			if (address[i] ==	devAddress2[i])	 	_addrCk2++;
-			if (address[i] ==	devAddress3[i])	 	_addrCk3++;
-			if (address[i] ==	devAddress4[i])	 	_addrCk4++;
-
-			if (address[i] ==	devAddress0[5-i])	_rvAddrCk0++;
-			if (address[i] ==	devAddress1[5-i])	_rvAddrCk1++;
-			if (address[i] ==	devAddress2[5-i])	_rvAddrCk2++;
-			if (address[i] ==	devAddress3[5-i])	_rvAddrCk3++;
-			if (address[i] ==	devAddress4[5-i])	_rvAddrCk4++;
-		}
-		if			((_addrCk0 == 6)	|| (_rvAddrCk0	== 6))	connectDevice = 0;
-		else if((_addrCk1 ==	6)	|| (_rvAddrCk1	== 6))	connectDevice = 1;
-		else if((_addrCk2 ==	6)	|| (_rvAddrCk2	== 6))	connectDevice = 2;
-		else if((_addrCk3 ==	6)	|| (_rvAddrCk3	== 6))	connectDevice = 3;
-		else if((_addrCk4 ==	6)	|| (_rvAddrCk4	== 6))	connectDevice = 4;
-	}
-
-	if(connectDevice < 5)
-	{
-		connectFlag	=	1;
-		for	(int i = 0;	i	<= 5;	i++)
-		{
-			if(connectDevice ==	0)			devAddressBuf[i] = devAddress0[i];
-			else if(connectDevice	== 1)	devAddressBuf[i] = devAddress1[i];
-			else if(connectDevice	== 2)	devAddressBuf[i] = devAddress2[i];
-			else if(connectDevice	== 3)	devAddressBuf[i] = devAddress3[i];
-			else if(connectDevice	== 4)	devAddressBuf[i] = devAddress4[i];
-		}
-
-		#if	defined(DEBUG_MODE_ENABLE)
-			DEBUG_SERIAL.println(connectDevice,	HEX);
-		#endif
-
-		Send_Command(cType_LinkConnect,	connectDevice);
-	}	
-}
 //-------------------------------------------------------------------------------------------------------//
 
 
@@ -268,7 +222,7 @@ void CoDroneClass::Receive()
 										(receiveDtype ==	dType_TrimFlight)		||	(receiveDtype ==	 dType_ImageFlow)	||	(receiveDtype ==	 dType_Temperature)	||	(receiveDtype	== dType_State)					||
 										(receiveDtype ==	dType_Attitude)			||	(receiveDtype ==	dType_GyroBias)		||	(receiveDtype	== dType_IrMessage)			||	(receiveDtype	== dType_TrimDrive)			||
 										(receiveDtype	==	dType_Button)				||	(receiveDtype ==	dType_Ack)				||	(receiveDtype ==	dType_LinkDiscoveredDevice)	||
-										(receiveDtype ==	dType_LinkState)		||	(receiveDtype ==	dType_LinkEvent)	||	(receiveDtype	== dType_LinkEventAddress)	||	(receiveDtype ==	dType_LinkRssi))	
+										(receiveDtype ==	dType_LinkState)		||	(receiveDtype ==	dType_LinkEvent)	||	(receiveDtype	== dType_LinkEventAddress)	||	(receiveDtype ==	dType_LinkRssi))
 										{
 											for(byte i = 0; i <= 27; i++)	receiveCompleteData[i] = dataBuff[i + 2];
 										}
@@ -297,50 +251,50 @@ void CoDroneClass::Receive()
 
 void CoDroneClass::ReceiveEventCheck(byte	_completeData[])
 {
+	//-------------------------------------------------------------------------------------------//
+	//-------------------------------------------------------------------------------------------//
 	if (receiveDtype	== dType_LinkDiscoveredDevice)//Discovered Device
 	{
-		byte devIndex	=	_completeData[0];
-		byte devName[20];
+		int devIndex	=	_completeData[0];
 
-		#if defined(DEBUG_MODE_ENABLE)
-		DEBUG_SERIAL.print(devIndex);
-		DEBUG_SERIAL.print(" : ");
-		#endif
+		for	(int i = 1;	i	<= 6;	i++)	devAddressNow[i-1] = _completeData[i];
+		RSSI_Now =_completeData[27];
 
-		for	(int i = 1;	i	<= 6;	i++)
+		//-------------------------------------------------------------------------------------//
+
+		if(connectMode == NearbyDrone)
 		{
-			 if	(devIndex	== 0)				devAddress0[i-1] = _completeData[i];
-			 else	if (devIndex ==	1)	devAddress1[i-1] = _completeData[i];
-			 else	if (devIndex ==	2)	devAddress2[i-1] = _completeData[i];
-			 else	if (devIndex ==	3)	devAddress3[i-1] = _completeData[i];
-			 else	if (devIndex ==	4)	devAddress4[i-1] = _completeData[i];
-
-				#if defined(DEBUG_MODE_ENABLE)
-					DEBUG_SERIAL.print(_completeData[i], HEX);
-					if(i < 6)	DEBUG_SERIAL.print(", ");
-				#endif
+			if(RSSI_High < RSSI_Now)
+			{
+				RSSI_High = RSSI_Now;
+				devNow = devIndex;
+				for	(int i = 0;	i	<= 5;	i++)	devAddressBuf[i] = devAddressNow[i];
+			}
 		}
 
-	/*
-		for	(int i = 7;	i	<= 26; i++)
+		else if((connectMode == ConnectedDrone) || (connectMode == AddressInputDrone))
 		{
-			devName[i-1] = _completeData[i];
-			#if defined(DEBUG_MODE_ENABLE)
-				DEBUG_SERIAL.write(devName[i]);
-			#endif
+			byte _addrCk = 0;
+			byte _rvAddrCk = 0;
+
+			for	(int i = 0;	i	<= 5;	i++)		// same	address	check
+			{
+				if (devAddressConnected[i] ==	devAddressNow[i])	 	_addrCk++;
+				if (devAddressConnected[i] ==	devAddressNow[5-i])	_rvAddrCk++;
+			}
+
+			if((_addrCk == 6)	|| (_rvAddrCk	== 6))
+			{
+				devNow = devIndex;
+				for	(int i = 0;	i	<= 5;	i++)	devAddressBuf[i] = devAddressNow[i];
+			}
 		}
-	*/
 
-		devRSSI[devIndex]	=	_completeData[27];
-		devFind[devIndex]	=	1;
-		devCount = devFind[0]	+	devFind[1] + devFind[2]	+	devFind[3] + devFind[4];
+		//-------------------------------------------------------------------------------------//
 
-		#if	defined(DEBUG_MODE_ENABLE)
-				DEBUG_SERIAL.print("\t");
-				DEBUG_SERIAL.println(devRSSI[devIndex] - 256);
-		#endif
 	}
-
+	//-------------------------------------------------------------------------------------------//
+//-------------------------------------------------------------------------------------------//
 	//---------------------------------------------------------------------------------------------//
 	else if (receiveDtype ==	dType_State)
 	{
@@ -427,7 +381,7 @@ void CoDroneClass::ReceiveEventCheck(byte	_completeData[])
 	{
 		rssi = _completeData[0];
 		rssi = rssi	-	256;
-		
+
 		#if	defined(DEBUG_MODE_ENABLE)
 			DEBUG_SERIAL.print("RSSI : ");
 			DEBUG_SERIAL.println(rssi);
@@ -703,7 +657,7 @@ void CoDroneClass::ReceiveEventCheck(byte	_completeData[])
 		receiveAccelSuccess = 1;
 
 		#if defined(DEBUG_MODE_ENABLE)
-	
+
 			DEBUG_SERIAL.println("");
 			DEBUG_SERIAL.println("-	ImuRawAndAngle");
 			DEBUG_SERIAL.print("[	");
@@ -743,31 +697,31 @@ void CoDroneClass::ReceiveEventCheck(byte	_completeData[])
 			DEBUG_SERIAL.print(",	");
 			DEBUG_SERIAL.print(_completeData[17],HEX);
 			DEBUG_SERIAL.println(" ]");
-	
+
 			DEBUG_SERIAL.print("AccX\t");
 			DEBUG_SERIAL.println(ImuAccX);
-	
+
 			DEBUG_SERIAL.print("AccY\t");
 			DEBUG_SERIAL.println(ImuAccY);
-	
+
 			DEBUG_SERIAL.print("AccZ\t");
 			DEBUG_SERIAL.println(ImuAccZ);
-	
+
 			DEBUG_SERIAL.print("GyroRoll\t");
 			DEBUG_SERIAL.println(ImuGyroRoll);
-	
+
 			DEBUG_SERIAL.print("GyroPitch\t");
 			DEBUG_SERIAL.println(ImuGyroPitch);
-	
+
 			DEBUG_SERIAL.print("GyroYaw	\t");
 			DEBUG_SERIAL.println(ImuGyroYaw);
-	
+
 			DEBUG_SERIAL.print("AngleRoll\t");
 			DEBUG_SERIAL.println(ImuAngleRoll);
-	
+
 			DEBUG_SERIAL.print("AnglePitch\t");
 			DEBUG_SERIAL.println(ImuAnglePitch);
-	
+
 			DEBUG_SERIAL.print("AngleYaw\t");
 			DEBUG_SERIAL.println(ImuAngleYaw);
 
@@ -786,11 +740,11 @@ void CoDroneClass::ReceiveEventCheck(byte	_completeData[])
 		receivePressureSuccess = 1;
 
 		#if	defined(DEBUG_MODE_ENABLE)
-	
+
 			DEBUG_SERIAL.println("");
 			DEBUG_SERIAL.println("-	Pressure");
 			DEBUG_SERIAL.print("[	");
-	
+
 			DEBUG_SERIAL.print(_completeData[0],HEX);
 			DEBUG_SERIAL.print(",	");
 			DEBUG_SERIAL.print(_completeData[1],HEX);
@@ -823,7 +777,7 @@ void CoDroneClass::ReceiveEventCheck(byte	_completeData[])
 			DEBUG_SERIAL.print(",	");
 			DEBUG_SERIAL.print(_completeData[15],HEX);
 			DEBUG_SERIAL.println(" ]");
-	
+
 			DEBUG_SERIAL.print("d1\t");
 			DEBUG_SERIAL.println(d1);
 			DEBUG_SERIAL.print("d2\t");
@@ -864,7 +818,7 @@ void CoDroneClass::ReceiveEventCheck(byte	_completeData[])
 			DEBUG_SERIAL.print(",	");
 			DEBUG_SERIAL.print(_completeData[7],HEX);
 			DEBUG_SERIAL.println(" ]");
-			
+
 			DEBUG_SERIAL.print("fVelocitySumX\t");
 			DEBUG_SERIAL.println(fVelocitySumX);
 			DEBUG_SERIAL.print("fVelocitySumY\t");
@@ -1293,7 +1247,7 @@ void CoDroneClass::ReceiveEventCheck(byte	_completeData[])
 		if (receiveEventState	== linkEvent_ScanStop)
 		{
 			if((discoverFlag ==	1) ||	(discoverFlag	== 2))	discoverFlag = 3;
-			
+
 			#if	defined(DEBUG_MODE_ENABLE)
 				DEBUG_SERIAL.println(" : linkEvent - ScanStop");
 			#endif
@@ -1312,7 +1266,7 @@ void CoDroneClass::ReceiveEventCheck(byte	_completeData[])
 				for	(int i = 0;	i	<= 5;	i++)		EEPROM.write(EEP_AddressFirst	+	i, devAddressBuf[i]);
 			}
 			pairing	=	true;
-			delay(500);
+			delay(2500);
 		}
 
 		else if	(receiveEventState ==	linkEvent_ReadyToControl)

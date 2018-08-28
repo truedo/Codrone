@@ -10,24 +10,6 @@
 #include <avr/interrupt.h>
 
 /***********************************************************************/
-/*
-# define JOY_UP_LIMIT						1023 - 100
-# define JOY_UP_RETURN_LIMIT		512 + 100
-# define JOY_DOWN_LIMIT					0 + 100
-# define JOY_DOWN_RETURN_LIMIT	512 - 100
-	*/
-/***********************************************************************/
-//////////////////////////typedef///////////////////////////////////////
-/***********************************************************************/
-
-typedef int32_t s32;
-typedef int16_t s16;
-typedef int8_t s8;
-typedef uint32_t u32;
-//typedef uint16_t u16;
-typedef uint8_t u8;
-
-/***********************************************************************/
 ////////////////////////Serial Select////////////////////////////////////
 /***********************************************************************/
 #if defined(UBRRH) || defined(UBRR0H)
@@ -622,7 +604,7 @@ public:
 
 	//------------------------------------------------------------------------------------//
 
-	void ConnectionProcess(byte	mode,	byte address[]);
+	void ConnectionProcess();
 	void AutoConnect();
 	void AutoConnect(byte mode);
 	void AutoConnect(byte mode, byte address[]);	
@@ -818,20 +800,16 @@ private:
 	
 	byte discoverFlag = 0;
 	byte connectFlag = 0;
-
-	byte devCount = 0;
-	byte devFind[5];
-
-	int devRSSI[5];
-
-	byte devAddress0[6];
-	byte devAddress1[6];
-	byte devAddress2[6];
-	byte devAddress3[6];
-	byte devAddress4[6];
-
+	int connectMode = 0;
+	
+	int devNow = -1;		
+	int RSSI_High = -255;
+	int RSSI_Now = 0;
+	
+	byte devAddressNow[6];
 	byte devAddressBuf[6];
 	byte devAddressConnected[6];
+		
 	//---------------------------------------------//
 
 
