@@ -806,7 +806,6 @@ private:
 	int RSSI_High = -255;
 	int RSSI_Now = 0;
 	
-	byte devAddressNow[6];
 	byte devAddressBuf[6];
 	byte devAddressConnected[6];
 		

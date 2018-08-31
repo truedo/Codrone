@@ -122,8 +122,7 @@ void CoDroneClass::ConnectionProcess()
 				if (displayLED++ ==	4)
 				{
 					displayLED = 0;
-					delay(50);
-
+					
 					RSSI_High = -255;
 					devNow = -1;
 					Send_Discover(DiscoverStart);
@@ -135,10 +134,22 @@ void CoDroneClass::ConnectionProcess()
 
 		  while (DRONE_SERIAL.available() > 0) 	Receive();
 		}
-		delay(50);
+		
+		delay(1000);
 	}
+				
+	DDRC = 	0b11111111;		
+	PORTC = 0b11100111;
+		
+	delay(1000);
+	
+	DDRC = 	0b11111111;		
+	PORTC = 0b01100110;
+	
+	delay(1000);
+		
 	LED_Connect();
-
+	
   while (DRONE_SERIAL.available() > 0)     Receive();
   delay(50);
   roll = 0;	pitch = 0;	yaw = 0;	throttle = 0;
@@ -255,6 +266,8 @@ void CoDroneClass::ReceiveEventCheck(byte	_completeData[])
 	//-------------------------------------------------------------------------------------------//
 	if (receiveDtype	== dType_LinkDiscoveredDevice)//Discovered Device
 	{
+		
+		byte devAddressNow[6];
 		int devIndex	=	_completeData[0];
 
 		for	(int i = 1;	i	<= 6;	i++)	devAddressNow[i-1] = _completeData[i];
@@ -1266,7 +1279,7 @@ void CoDroneClass::ReceiveEventCheck(byte	_completeData[])
 				for	(int i = 0;	i	<= 5;	i++)		EEPROM.write(EEP_AddressFirst	+	i, devAddressBuf[i]);
 			}
 			pairing	=	true;
-			delay(2500);
+	//		delay(2500);
 		}
 
 		else if	(receiveEventState ==	linkEvent_ReadyToControl)
@@ -1282,7 +1295,7 @@ void CoDroneClass::ReceiveEventCheck(byte	_completeData[])
 				for	(int i = 0;	i	<= 5;	i++)		EEPROM.write(EEP_AddressFirst	+	i, devAddressBuf[i]);
 			}
 			pairing	=	true;
-			delay(500);
+	//		delay(500);
 		}
 
 		else if	(receiveEventState ==	linkEvent_RspWriteSuccess)

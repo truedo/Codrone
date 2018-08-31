@@ -302,27 +302,33 @@ void CoDroneClass::Control(int interval)
 }
 
 void CoDroneClass::Control()
-{
-	byte _packet[10];
-	byte _crc[2];
-	byte _cType = dType_Control;
-	byte _len = 4;
-	//header
-	_packet[0] = _cType;
-	_packet[1] = _len;
-	//data
-	_packet[2] = roll;
-	_packet[3] = pitch;
-	_packet[4] = yaw;
-	_packet[5] = throttle;
-	unsigned short crcCal = CRC16_Make(_packet, _len+2);
-	_crc[0] = (crcCal >> 8) & 0xff;
-	_crc[1] = crcCal & 0xff;
-	Send_Processing(_packet,_len,_crc);
-	roll = 0;
-	pitch = 0;
-	yaw = 0;
-	throttle = 0;
+{	
+		byte _packet[10];
+		byte _crc[2];
+		byte _cType = dType_Control;
+		byte _len = 4;
+		//header
+		_packet[0] = _cType;
+		_packet[1] = _len;
+		//data
+		_packet[2] = roll;
+		_packet[3] = pitch;
+		_packet[4] = yaw;
+		_packet[5] = throttle;
+		unsigned short crcCal = CRC16_Make(_packet, _len+2);
+		_crc[0] = (crcCal >> 8) & 0xff;
+		_crc[1] = crcCal & 0xff;
+		
+		Send_Processing(_packet,_len,_crc);
+	
+	#if	!defined(__AVR_ATmega328PB__)
+	
+		roll = 0;
+		pitch = 0;
+		yaw = 0;
+		throttle = 0;
+	
+	#endif
 }
 //-------------------------------------------------------------------------------------------------------//
 
