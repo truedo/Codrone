@@ -107,31 +107,33 @@ void CoDroneClass::ConnectionProcess()
 				LED_Display(LED_DISPLAY_STANDARD,	0);
 				PreviousMillis = millis();
 
-		//		discoverFlag = 0;
+				while(!TimeCheck(1000))	Receive();
+				while (DRONE_SERIAL.available() > 0)     Receive();
 
 				if(devNow > -1)
 				{
 					connectFlag = 1;
 					Send_Command(cType_LinkConnect,	devNow);
 				}
+				discoverFlag = 0;
 			}
-
-
 			else if((!(connectFlag == 1)) && (TimeCheck(400)))	// time	out	&	LED
 			{
 				if (displayLED++ ==	4)
 				{
 					displayLED = 0;
-					
-					RSSI_High = -255;
-					devNow = -1;
-					Send_Discover(DiscoverStart);
+										
+					if(discoverFlag == 0)
+					{						
+						RSSI_High = -255;
+						devNow = -1;
+						Send_Discover(DiscoverStart);
+					}
 				}
+				
 				LED_Display(LED_DISPLAY_MOVE_RADER,	displayLED);
 				PreviousMillis = millis();
 			}
-
-
 		  while (DRONE_SERIAL.available() > 0) 	Receive();
 		}
 		
@@ -290,7 +292,7 @@ void CoDroneClass::ReceiveEventCheck(byte	_completeData[])
 			byte _addrCk = 0;
 			byte _rvAddrCk = 0;
 
-			for	(int i = 0;	i	<= 5;	i++)		// same	address	check
+			for	(int i = 0;	i	<= 5;	i++)	// same	address	check
 			{
 				if (devAddressConnected[i] ==	devAddressNow[i])	 	_addrCk++;
 				if (devAddressConnected[i] ==	devAddressNow[5-i])	_rvAddrCk++;
