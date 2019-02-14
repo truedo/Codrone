@@ -35,6 +35,10 @@ void CoDroneClass::begin(long	baud)
 		Send_LinkModeBroadcast(LinkModeActive);			//Link Active	Mode
 		delay(100);
 	#endif
+	
+	
+//	calibrate();
+	
 }
 //-------------------------------------------------------------------------------------------------------//
 
@@ -159,6 +163,9 @@ void CoDroneClass::ConnectionProcess()
   delay(50);
   while (DRONE_SERIAL.available() > 0)     Receive();
   delay(50);
+  
+ // calibrate();
+ 
 }
 
 //-------------------------------------------------------------------------------------------------------//

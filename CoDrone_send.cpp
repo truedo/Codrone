@@ -92,6 +92,34 @@ void CoDroneClass::Send_Check(byte _data[], byte _length, byte _crc[])
 //--------------------------------------------- Send ----------------------------------------------------//
 //-------------------------------------------------------------------------------------------------------//
 
+void CoDroneClass::calibrate()
+{
+	byte _packet[9];
+	byte _crc[2];
+
+  	//header
+	_packet[0] = dType_Command;
+	_packet[1] = 0x02;
+
+ 	//data
+	_packet[2] = 0x53;
+	_packet[3] = 0;
+
+	unsigned short crcCal = CRC16_Make(_packet, _packet[1]+2);
+	_crc[0] = (crcCal >> 8) & 0xff;
+	_crc[1] = crcCal & 0xff;
+
+
+	Send_Processing(_packet,_packet[1],_crc);
+	Send_Check(_packet,_packet[1],_crc);
+	delay(50);
+	CoDrone.Buzz(523,2);
+	CoDrone.Buzz(659,2);
+	CoDrone.Buzz(783,2);
+	CoDrone.Buzz(1055,2);
+}
+
+
 void CoDroneClass::Send_Coordinate(byte mode)
 {
 	if(mode == cSet_Absolute)				Send_Command(cType_Coordinate, cSet_Absolute);
